@@ -130,4 +130,11 @@ dmypy.json
 
 .vscode
 
-datasets
+/**/weight/*
+/datasets/*
+
+# mlflow
+mlruns
+/**/mlruns/*
+/**/outputs/*
+/**/multirun/*
