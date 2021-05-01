@@ -9,11 +9,11 @@ import torch.optim as optim
 from AnimeFaceDataset import AnimeFaceDataset
 from MlflowWriter import MlflowWriter
 from model import mobilenet_v2
+from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 from utils import accuracy, get_worker_init
-from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 class ImageClassifier(pl.LightningModule):
@@ -53,12 +53,12 @@ class ImageClassifier(pl.LightningModule):
             loss_list.append(output[0].cpu().numpy())
             acc1_list.append(output[1].cpu().numpy())
             acc5_list.append(output[2].cpu().numpy())
-        loss = sum(loss_list)/len(loss_list)
-        acc1 = sum(acc1_list)/len(acc1_list)
-        acc5 = sum(acc5_list)/len(acc5_list)
-        self.log('val_loss', loss)
-        self.log('val_acc1', acc1)
-        self.log('val_acc5', acc5)
+        loss = sum(loss_list) / len(loss_list)
+        acc1 = sum(acc1_list) / len(acc1_list)
+        acc5 = sum(acc5_list) / len(acc5_list)
+        self.log("val_loss", loss)
+        self.log("val_acc1", acc1)
+        self.log("val_acc5", acc5)
         self.writer.log_metric("val/loss", loss, step=iteration)
         self.writer.log_metric("val/Acc1", acc1, step=iteration)
         self.writer.log_metric("val/Acc5", acc5, step=iteration)
@@ -75,8 +75,8 @@ class ImageClassifier(pl.LightningModule):
     def configure_callbacks(self):
         cwd = hydra.utils.get_original_cwd()
         checkpoint_callback = ModelCheckpoint(
-            monitor='val_loss',
-            mode='min',
+            monitor="val_loss",
+            mode="min",
             dirpath=os.path.join(cwd, self.args.path2weight),
             filename=f"{self.args.exp_name}_mobilenetv2_best",
         )
