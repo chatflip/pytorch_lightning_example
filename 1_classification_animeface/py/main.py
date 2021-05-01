@@ -6,13 +6,14 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from AnimeFaceDataset import AnimeFaceDataset
-from MlflowWriter import MlflowWriter
-from model import mobilenet_v2
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
+
+from AnimeFaceDataset import AnimeFaceDataset
+from MlflowWriter import MlflowWriter
+from model import mobilenet_v2
 from utils import accuracy, get_worker_init
 
 
