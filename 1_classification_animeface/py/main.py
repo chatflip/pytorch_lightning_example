@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from datasets import AnimeFaceDataset
+from AnimeFaceDataset import AnimeFaceDataset
 from MlflowWriter import MlflowWriter
 from model import mobilenet_v2
 from torch.utils.data import DataLoader
