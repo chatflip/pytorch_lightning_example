@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 
 import hydra
@@ -12,7 +11,6 @@ from CustomMlFlowLogger import CustomMlFlowLogger
 from MlflowWriter import MlflowWriter
 from model import mobilenet_v2
 from pytorch_lightning.callbacks import ModelCheckpoint
-from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 from utils import accuracy, get_worker_init
@@ -29,12 +27,10 @@ class ImageClassifier(pl.LightningModule):
         return self.model(x)
 
     def training_step(self, batch, batch_nb):
-        logs = {}
-        iteration = self.current_epoch * len(self.train_dataloader()) + batch_nb
         image, target = batch
         output = self(image)
         loss = self.criterion(output, target)
-        if iteration % self.args.log_freq == 0:
+        if self.global_step % self.args.log_freq == 0:
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
             # GPU:0の結果のみlog保存
             self.log("train_loss", loss.item())
