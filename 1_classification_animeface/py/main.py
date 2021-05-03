@@ -6,14 +6,12 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from AnimeFaceDataset import AnimeFaceDataset
+from AnimeFaceDataModule import AnimeFaceDataModule
 from CustomMlFlowLogger import CustomMlFlowLogger
 from MlflowWriter import MlflowWriter
 from model import mobilenet_v2
 from pytorch_lightning.callbacks import ModelCheckpoint
-from torchvision import transforms
-from torchvision.transforms.functional import InterpolationMode
-from utils import accuracy, get_worker_init
+from utils import accuracy
 
 
 class ImageClassifier(pl.LightningModule):
@@ -63,17 +61,14 @@ class ImageClassifier(pl.LightningModule):
         self.log("val_loss", loss)
         self.log("val_acc1", acc1)
         self.log("val_acc5", acc5)
-        if self.testing:
-            return {"val_loss": loss, "val_acc1": acc1, "val_acc5": acc5}
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
 
     def test_epoch_end(self, outputs):
-        return self.validation_epoch_end(outputs)
+        self.validation_epoch_end(outputs)
 
     def configure_optimizers(self):
-        epoch_per_iteration = len(self.train_dataloader())
         optimizer = optim.SGD(
             self.parameters(),
             lr=self.args.optimizer.lr,
@@ -82,7 +77,7 @@ class ImageClassifier(pl.LightningModule):
         )  # 最適化方法定義
         scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer,
-            step_size=self.args.optimizer.lr_step_size * epoch_per_iteration,
+            step_size=self.args.optimizer.lr_step_size * len(self.train_dataloader()),
             gamma=self.args.optimizer.lr_gamma,
         )
         return [optimizer], [scheduler]
@@ -96,68 +91,6 @@ class ImageClassifier(pl.LightningModule):
             filename=f"{self.args.exp_name}_mobilenetv2_best",
         )
         return [checkpoint_callback]
-
-    @property
-    def train_transform(self):
-        return transforms.Compose(
-            [
-                transforms.Resize(
-                    self.args.image_size, InterpolationMode.BILINEAR
-                ),  # リサイズ
-                transforms.RandomCrop(self.args.crop_size),  # クロップ
-                transforms.RandomHorizontalFlip(p=0.5),  # 左右反転
-                transforms.ToTensor(),  # テンソル化
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
-
-    @property
-    def valid_transform(self):
-        return transforms.Compose(
-            [
-                transforms.Resize(
-                    self.args.image_size, InterpolationMode.BILINEAR
-                ),  # リサイズ
-                transforms.CenterCrop(self.args.crop_size),
-                transforms.ToTensor(),  # テンソル化
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
-
-    def __dataloader(self, train: bool):
-        """Train/validation loaders."""
-        cwd = hydra.utils.get_original_cwd()
-        if train:
-            dataset = AnimeFaceDataset(
-                os.path.join(cwd, self.args.path2db, "train"), self.train_transform
-            )
-        else:
-            dataset = AnimeFaceDataset(
-                os.path.join(cwd, self.args.path2db, "val"), self.valid_transform
-            )
-
-        return torch.utils.data.DataLoader(
-            dataset=dataset,
-            batch_size=self.args.batch_size,
-            shuffle=train,
-            num_workers=os.cpu_count(),
-            pin_memory=True,
-            drop_last=train,
-            worker_init_fn=get_worker_init(self.args.seed),
-        )
-
-    def train_dataloader(self):
-        return self.__dataloader(train=True)
-
-    def val_dataloader(self):
-        return self.__dataloader(train=False)
-
-    def test_dataloader(self):
-        return self.__dataloader(train=False)
 
 
 def write_log_base(args, writer):
@@ -178,6 +111,7 @@ def main(args):
 
     pl.seed_everything(args.seed)
     model = mobilenet_v2(pretrained=True, num_classes=args.num_classes)
+    datamodule = AnimeFaceDataModule(args)
     criterion = nn.CrossEntropyLoss()
     plmodel = ImageClassifier(args, model, criterion)
     trainer = pl.Trainer(
@@ -192,10 +126,9 @@ def main(args):
         deterministic=True,
         num_sanity_val_steps=-1,
     )
-
     starttime = time.time()  # 実行時間計測(実時間)
-    trainer.fit(plmodel)
-    trainer.test(plmodel)
+    trainer.fit(plmodel, datamodule=datamodule)
+    trainer.test(plmodel, datamodule=datamodule, verbose=True)
     writer.move_mlruns()
     # 実行時間表示
     endtime = time.time()
