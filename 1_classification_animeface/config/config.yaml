@@ -11,8 +11,8 @@ evaluate: false
 restart: false
 seed: 1
 print_freq: 10
+log_freq: 10
 apex: false
-apex_opt_level: O1
 
 optimizer:
   lr: 0.0045

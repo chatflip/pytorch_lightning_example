@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 
 import hydra
@@ -12,31 +13,38 @@ from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 
 from AnimeFaceDataset import AnimeFaceDataset
+from CustomMlFlowLogger import CustomMlFlowLogger
 from MlflowWriter import MlflowWriter
 from model import mobilenet_v2
 from utils import accuracy, get_worker_init
 
 
 class ImageClassifier(pl.LightningModule):
-    def __init__(self, args, model, writer):
+    def __init__(self, args, model, criterion):
         super(ImageClassifier, self).__init__()
         self.args = args
         self.model = model
-        self.criterion = nn.CrossEntropyLoss()
-        self.writer = writer
+        self.criterion = criterion
 
     def forward(self, x):
         return self.model(x)
 
     def training_step(self, batch, batch_nb):
+        logs = {}
+        iteration = self.current_epoch * len(self.train_dataloader()) + batch_nb
         image, target = batch
         output = self(image)
         loss = self.criterion(output, target)
-        acc1, acc5 = accuracy(output, target, topk=(1, 5))
-        self.writer.log_metric("train/loss", loss.item())
-        self.writer.log_metric("train/Acc1", acc1.item())
-        self.writer.log_metric("train/Acc5", acc5.item())
-        return loss
+        if iteration % self.args.log_freq == 0:
+            acc1, acc5 = accuracy(output, target, topk=(1, 5))
+            # GPU:0の結果のみlog保存
+            self.log("train_loss", loss.item())
+            self.log("train_acc1", acc1.item())
+            self.log("train_acc5", acc5.item())
+        return {"loss": loss}
+
+    def training_step_end(self, batch_parts):
+        return batch_parts["loss"].mean()
 
     def validation_step(self, batch, batch_idx):
         image, target = batch
@@ -46,7 +54,7 @@ class ImageClassifier(pl.LightningModule):
         return loss.item(), acc1.item(), acc5.item()
 
     def validation_epoch_end(self, outputs):
-        iteration = (self.current_epoch + 1) * len(self.train_dataloader())
+        # TODO: drop_lastの場合計算合わない
         loss_list = []
         acc1_list = []
         acc5_list = []
@@ -60,18 +68,29 @@ class ImageClassifier(pl.LightningModule):
         self.log("val_loss", loss)
         self.log("val_acc1", acc1)
         self.log("val_acc5", acc5)
-        self.writer.log_metric("val/loss", loss, step=iteration)
-        self.writer.log_metric("val/Acc1", acc1, step=iteration)
-        self.writer.log_metric("val/Acc5", acc5, step=iteration)
+        if self.testing:
+            return {"val_loss": loss,"val_acc1": acc1,"val_acc5": acc5}
+
+    def test_step(self, batch, batch_idx):
+        return self.validation_step(batch, batch_idx)
+
+    def test_epoch_end(self, outputs):
+        return self.validation_epoch_end(outputs)
 
     def configure_optimizers(self):
+        epoch_per_iteration = len(self.train_dataloader())
         optimizer = optim.SGD(
             self.parameters(),
             lr=self.args.optimizer.lr,
             momentum=self.args.optimizer.momentum,
             weight_decay=self.args.optimizer.weight_decay,
         )  # 最適化方法定義
-        return optimizer
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, 
+            step_size=self.args.optimizer.lr_step_size * epoch_per_iteration, 
+            gamma=self.args.optimizer.lr_gamma
+        )  
+        return [optimizer], [scheduler]
 
     def configure_callbacks(self):
         cwd = hydra.utils.get_original_cwd()
@@ -84,12 +103,6 @@ class ImageClassifier(pl.LightningModule):
         return [checkpoint_callback]
 
     @property
-    def normalize_transform(self):
-        return transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )
-
-    @property
     def train_transform(self):
         return transforms.Compose(
             [
@@ -99,7 +112,9 @@ class ImageClassifier(pl.LightningModule):
                 transforms.RandomCrop(self.args.crop_size),  # クロップ
                 transforms.RandomHorizontalFlip(p=0.5),  # 左右反転
                 transforms.ToTensor(),  # テンソル化
-                self.normalize_transform,
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
 
@@ -112,7 +127,9 @@ class ImageClassifier(pl.LightningModule):
                 ),  # リサイズ
                 transforms.CenterCrop(self.args.crop_size),
                 transforms.ToTensor(),  # テンソル化
-                self.normalize_transform,
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
 
@@ -144,6 +161,9 @@ class ImageClassifier(pl.LightningModule):
     def val_dataloader(self):
         return self.__dataloader(train=False)
 
+    def test_dataloader(self):
+        return self.__dataloader(train=False)
+
 
 def write_log_base(args, writer):
     for key in args:
@@ -159,23 +179,28 @@ def write_log_base(args, writer):
 def main(args):
     writer = MlflowWriter(args.exp_name)
     writer = write_log_base(args, writer)
-
+    logger = CustomMlFlowLogger(writer)
+    
     pl.seed_everything(args.seed)
     model = mobilenet_v2(pretrained=True, num_classes=args.num_classes)
-    plmodel = ImageClassifier(args, model, writer)
-
+    criterion = nn.CrossEntropyLoss()
+    plmodel = ImageClassifier(args, model, criterion)
     trainer = pl.Trainer(
+        logger=logger,
+        checkpoint_callback=False,
         gpus=2,
-        accelerator="dp",
-        progress_bar_refresh_rate=args.print_freq,
-        precision=16,
-        deterministic=True,
         max_epochs=args.epochs,
+        flush_logs_every_n_steps=args.print_freq,
+        log_every_n_steps=args.log_freq,
+        accelerator="dp",
+        precision=16 if args.apex else 32,
+        deterministic=True,
+        num_sanity_val_steps=-1,
     )
 
     starttime = time.time()  # 実行時間計測(実時間)
     trainer.fit(plmodel)
-    writer.set_terminated()
+    trainer.test(plmodel)
     writer.move_mlruns()
     # 実行時間表示
     endtime = time.time()
