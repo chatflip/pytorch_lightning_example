@@ -7,15 +7,14 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from pytorch_lightning.callbacks import ModelCheckpoint
-from torch.utils.data import DataLoader
-from torchvision import transforms
-from torchvision.transforms.functional import InterpolationMode
-
 from AnimeFaceDataset import AnimeFaceDataset
 from CustomMlFlowLogger import CustomMlFlowLogger
 from MlflowWriter import MlflowWriter
 from model import mobilenet_v2
+from pytorch_lightning.callbacks import ModelCheckpoint
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from torchvision.transforms.functional import InterpolationMode
 from utils import accuracy, get_worker_init
 
 
@@ -69,7 +68,7 @@ class ImageClassifier(pl.LightningModule):
         self.log("val_acc1", acc1)
         self.log("val_acc5", acc5)
         if self.testing:
-            return {"val_loss": loss,"val_acc1": acc1,"val_acc5": acc5}
+            return {"val_loss": loss, "val_acc1": acc1, "val_acc5": acc5}
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
@@ -86,10 +85,10 @@ class ImageClassifier(pl.LightningModule):
             weight_decay=self.args.optimizer.weight_decay,
         )  # 最適化方法定義
         scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer, 
-            step_size=self.args.optimizer.lr_step_size * epoch_per_iteration, 
-            gamma=self.args.optimizer.lr_gamma
-        )  
+            optimizer,
+            step_size=self.args.optimizer.lr_step_size * epoch_per_iteration,
+            gamma=self.args.optimizer.lr_gamma,
+        )
         return [optimizer], [scheduler]
 
     def configure_callbacks(self):
@@ -180,7 +179,7 @@ def main(args):
     writer = MlflowWriter(args.exp_name)
     writer = write_log_base(args, writer)
     logger = CustomMlFlowLogger(writer)
-    
+
     pl.seed_everything(args.seed)
     model = mobilenet_v2(pretrained=True, num_classes=args.num_classes)
     criterion = nn.CrossEntropyLoss()

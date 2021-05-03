@@ -4,14 +4,13 @@ from pytorch_lightning.utilities import rank_zero_only
 
 
 class CustomMlFlowLogger(LightningLoggerBase):
-
     def __init__(self, writer):
         super(CustomMlFlowLogger, self).__init__()
         self.writer = writer
 
     @property
     def name(self):
-        return 'CustomMlFlowLogger'
+        return "CustomMlFlowLogger"
 
     @property
     @rank_zero_experiment
@@ -22,7 +21,7 @@ class CustomMlFlowLogger(LightningLoggerBase):
     @property
     def version(self):
         # Return the experiment version, int or str.
-        return '0.1'
+        return "0.1"
 
     @rank_zero_only
     def log_hyperparams(self, params):
