@@ -11,6 +11,8 @@ torchvision = "^0.9.1"
 hydra-core = "^1.0.6"
 mlflow = "^1.15.0"
 pytorch-lightning = "^1.2.6"
+segmentation-models-pytorch = "*"
+albumentations = "*"
 
 [tool.poetry.dev-dependencies]
 pysen = "*"
@@ -35,6 +37,7 @@ py_version = "py37"
 
 [tool.pysen.lint.source]
 includes = ["."]
+exclude_globs = ["5-segmentation_voc/py/SegLoss-master/*"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
