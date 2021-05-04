@@ -4,6 +4,7 @@ import hydra
 import pytorch_lightning as pl
 import torch
 from AnimeFaceDataset import AnimeFaceDataset
+from AnimeFaceDownloader import AnimeFaceDownloader
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 from utils import get_worker_init
@@ -14,6 +15,9 @@ class AnimeFaceDataModule(pl.LightningDataModule):
         super().__init__()
         self.args = args
         self.dims = (3, args.crop_size, args.crop_size)
+
+    def prepare_data(self):
+        AnimeFaceDownloader()
 
     def train_dataloader(self):
         return self.__dataloader(train=True)
