@@ -3,4 +3,4 @@ encoder: timm-efficientnet-b3
 decoder: UnetPlusPlus
 image_height: 512
 image_width: 512
-batch_size: 8
+batch_size: 16

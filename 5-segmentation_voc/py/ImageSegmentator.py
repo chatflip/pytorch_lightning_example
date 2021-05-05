@@ -3,7 +3,7 @@ import os
 import hydra
 import pytorch_lightning as pl
 import torch.optim as optim
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 
 
 class ImageSegmentator(pl.LightningModule):
@@ -24,16 +24,20 @@ class ImageSegmentator(pl.LightningModule):
         dice_loss = self.criterions["dice_loss"](output, target)
         lovasz_loss = self.criterions["lovasz_loss"](output, target)
         bce_loss = self.criterions["bce_loss"](output, target)
-        loss = jaccard_loss + dice_loss + lovasz_loss + bce_loss
-        if self.global_step % self.args.log_freq == 0:
-            iou_acc = self.metrics(output, target)
-            # GPU:0の結果のみlog保存
-            self.log("train_jaccard_loss", jaccard_loss.item())
-            self.log("train_dice_loss", dice_loss.item())
-            self.log("train_lovasz_loss", lovasz_loss.item())
-            self.log("train_bce_loss", bce_loss.item())
-            self.log("train_loss", loss.item())
-            self.log("train_iou", iou_acc.item())
+        loss = (
+            0.25 * jaccard_loss
+            + 0.25 * dice_loss
+            + 0.25 * lovasz_loss
+            + 0.25 * bce_loss
+        )
+        iou_acc = self.metrics(output, target)
+        # GPU:0の結果のみlog保存
+        self.log("train_jaccard_loss", jaccard_loss.item())
+        self.log("train_dice_loss", dice_loss.item())
+        self.log("train_lovasz_loss", lovasz_loss.item())
+        self.log("train_bce_loss", bce_loss.item())
+        self.log("train_loss", loss.item())
+        self.log("train_iou", iou_acc.item())
         return {"loss": loss}
 
     def training_step_end(self, batch_parts):
@@ -46,7 +50,12 @@ class ImageSegmentator(pl.LightningModule):
         dice_loss = self.criterions["dice_loss"](output, target)
         lovasz_loss = self.criterions["lovasz_loss"](output, target)
         bce_loss = self.criterions["bce_loss"](output, target)
-        loss = jaccard_loss + dice_loss + lovasz_loss + bce_loss
+        loss = (
+            0.25 * jaccard_loss
+            + 0.25 * dice_loss
+            + 0.25 * lovasz_loss
+            + 0.25 * bce_loss
+        )
         iou_acc = self.metrics(output, target)
         return (
             jaccard_loss.item(),
@@ -97,18 +106,21 @@ class ImageSegmentator(pl.LightningModule):
             self.parameters(),
             lr=self.args.lr,
         )  # 最適化方法定義
-        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            optimizer,
-            T_0=num_training_samples,
-            T_mult=1,
-            eta_min=0.1 * self.args.lr,
-            last_epoch=-1,
-        )
-        return [optimizer], [scheduler]
+        lr_scheduler = {
+            "scheduler": optim.lr_scheduler.CosineAnnealingWarmRestarts(
+                optimizer,
+                T_0=num_training_samples,
+                T_mult=1,
+                eta_min=0.1 * self.args.lr,
+                last_epoch=-1,
+            ),
+            "name": "lr",
+        }
+        return [optimizer], [lr_scheduler]
 
     def configure_callbacks(self):
         cwd = hydra.utils.get_original_cwd()
-        filename = "{}_{}_{}_H{}_W{}.pth".format(
+        filename = "{}_{}_{}_H{}_W{}".format(
             self.args.exp_name,
             self.args.arch.decoder,
             self.args.arch.encoder,
@@ -121,4 +133,5 @@ class ImageSegmentator(pl.LightningModule):
             dirpath=os.path.join(cwd, self.args.path2weight),
             filename=filename,
         )
-        return [checkpoint_callback]
+        lr_monitor = LearningRateMonitor(logging_interval="step")
+        return [checkpoint_callback, lr_monitor]

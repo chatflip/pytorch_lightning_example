@@ -1,28 +1,14 @@
-import argparse
 import sys
 import time
 
 import albumentations as A
 import cv2
+import hydra
 import numpy as np
+import segmentation_models_pytorch as smp
 import torch
 from albumentations.pytorch import ToTensorV2
-
-
-def opt():
-    parser = argparse.ArgumentParser(description="PyTorch Segmentation Model")
-    # parser.add_argument('--weight_path', type=str, default='weight/voc2012_DeepLabV3_mobilenet_v2_512_512.pth')
-    parser.add_argument(
-        "--weight_path",
-        type=str,
-        default="weight/voc2012_Unet_efficientnet-b3_512_512.pth",
-    )
-    parser.add_argument("--camera_height", type=int, default=720)
-    parser.add_argument("--camera_width", type=int, default=1280)
-    parser.add_argument("--inference_height", type=int, default=256)
-    parser.add_argument("--inference_width", type=int, default=256)
-    args = parser.parse_args()
-    return args
+from ImageSegmentator import ImageSegmentator
 
 
 def get_pascal_labels():
@@ -60,7 +46,7 @@ def get_transform(args):
     )
     transform = A.Compose(
         [
-            A.Resize(args.inference_height, args.inference_width),
+            A.Resize(args.arch.image_height, args.arch.image_width),
             normalize,
             ToTensorV2(),
         ]
@@ -88,14 +74,43 @@ def make_overlay(frame, seg_image):
     return overlay_image
 
 
+@hydra.main(config_path="./../config", config_name="config")
 def main(args):
     print(args)
+    cwd = hydra.utils.get_original_cwd()
+    model = getattr(smp, args.arch.decoder)(
+        encoder_name=args.arch.encoder,
+        encoder_weights="imagenet",
+        classes=args.num_classes,
+    )
+
+    weight_name = "{}/{}/{}_{}_{}_H{}_W{}-v8.ckpt".format(
+        cwd,
+        args.path2weight,
+        args.exp_name,
+        args.arch.decoder,
+        args.arch.encoder,
+        args.arch.image_height,
+        args.arch.image_width,
+    )
+
+    ImageSegmentator.load_from_checkpoint(
+        weight_name,
+        args=args,
+        model=model,
+        criterions=None,
+        metrics=None,
+    )
+
     color_map = get_pascal_labels()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # cpuとgpu自動選択
-    model = torch.load(args.weight_path).eval().to(device)
+    model = model.eval().to(device)
+
+    camera_width = 1280
+    camera_height = 720
     cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.camera_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.camera_height)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
     cap.set(cv2.CAP_PROP_FPS, 60.0)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -118,12 +133,15 @@ def main(args):
 
         start_time = time.perf_counter()
         index = decode_result(result)
-        seg_image = color_map[index]
-        overlay = make_overlay(frame, seg_image)
         postprocess_time = time.perf_counter() - start_time
 
-        cv2.imshow("aaa", overlay)
-        interval = preprocess_time + inference_time + postprocess_time
+        start_time = time.perf_counter()
+        seg_image = color_map[index]
+        overlay = make_overlay(frame, seg_image)
+        visualize_time = time.perf_counter() - start_time
+
+        cv2.imshow("result", overlay)
+        interval = preprocess_time + inference_time + postprocess_time + visualize_time
         sys.stdout.write("\rFPS: {:.1f}".format(1.0 / interval))
         sys.stdout.flush()
         if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -132,5 +150,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    args = opt()
-    main(args)
+    main()

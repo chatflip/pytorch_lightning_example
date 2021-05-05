@@ -5,8 +5,8 @@ num_classes: 21
 lr: 1e-4
 epochs: 30
 iou_threshold: 0.9
-print_freq: 100
-log_freq: 100
+print_freq: 10
+log_freq: 10
 seed: 1
 apex: True
 

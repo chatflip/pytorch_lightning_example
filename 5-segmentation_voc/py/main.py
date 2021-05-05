@@ -36,12 +36,12 @@ def main(args):
         checkpoint_callback=False,
         gpus=2,
         max_epochs=args.epochs,
-        flush_logs_every_n_steps=args.print_freq,
+        progress_bar_refresh_rate=args.print_freq,
         log_every_n_steps=args.log_freq,
         accelerator="dp",
         precision=16 if args.apex else 32,
         deterministic=True,
-        num_sanity_val_steps=-1,
+        num_sanity_val_steps=0,
     )
 
     starttime = time.time()  # 実行時間計測(実時間)
