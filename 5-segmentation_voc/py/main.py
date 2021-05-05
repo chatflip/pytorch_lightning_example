@@ -9,22 +9,11 @@ from ImageSegmentator import ImageSegmentator
 from MlflowWriter import MlflowWriter
 from VOCSegDataModule import VOCSegDataModule
 
-
-def write_base_log(args, writer):
-    for key in args:
-        writer.log_param(key, args[key])
-    writer.log_params_from_omegaconf_dict(args)
-    writer.log_artifact(os.path.join(os.getcwd(), ".hydra/config.yaml"))
-    writer.log_artifact(os.path.join(os.getcwd(), ".hydra/hydra.yaml"))
-    writer.log_artifact(os.path.join(os.getcwd(), ".hydra/overrides.yaml"))
-    return writer
-
-
 @hydra.main(config_path="./../config", config_name="config")
 def main(args):
     print(args)
     writer = MlflowWriter(args.exp_name)
-    writer = write_base_log(args, writer)
+    writer = writer.write_base_log(writer, args)
     logger = CustomMlFlowLogger(writer)
     pl.seed_everything(args.seed)
 
@@ -34,9 +23,14 @@ def main(args):
         classes=args.num_classes,
     )
     datamodule = VOCSegDataModule(args)
-    criterion = smp.utils.losses.DiceLoss()
+    criterions = {
+        "jaccard_loss": smp.losses.JaccardLoss(mode="binary"),
+        "dice_loss": smp.losses.DiceLoss(mode="binary"),
+        "lovasz_loss": smp.losses.LovaszLoss(mode="binary"),
+        "bce_loss": smp.losses.SoftBCEWithLogitsLoss(),
+    }
     metrics = smp.utils.metrics.IoU(threshold=args.iou_threshold)
-    plmodel = ImageSegmentator(args, model, criterion, metrics)
+    plmodel = ImageSegmentator(args, model, criterions, metrics)
     trainer = pl.Trainer(
         logger=logger,
         checkpoint_callback=False,

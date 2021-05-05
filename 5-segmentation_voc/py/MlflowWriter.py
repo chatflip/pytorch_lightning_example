@@ -53,6 +53,16 @@ class MlflowWriter:
     def set_terminated(self):
         self.client.set_terminated(self.run_id)
 
+    @staticmethod
+    def write_base_log(writer, args):
+        for key in args:
+            writer.log_param(key, args[key])
+        writer.log_params_from_omegaconf_dict(args)
+        writer.log_artifact(os.path.join(os.getcwd(), ".hydra/config.yaml"))
+        writer.log_artifact(os.path.join(os.getcwd(), ".hydra/hydra.yaml"))
+        writer.log_artifact(os.path.join(os.getcwd(), ".hydra/overrides.yaml"))
+        return writer
+
     def move_mlruns(self):
         # runのコピー
         hydra_cwd = os.getcwd()

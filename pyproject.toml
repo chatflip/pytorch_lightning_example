@@ -11,8 +11,8 @@ torchvision = "^0.9.1"
 hydra-core = "^1.0.6"
 mlflow = "^1.15.0"
 pytorch-lightning = "^1.2.6"
-segmentation-models-pytorch = "*"
 albumentations = "*"
+segmentation-models-pytorch = {git = "https://github.com/qubvel/segmentation_models.pytorch"}
 
 [tool.poetry.dev-dependencies]
 pysen = "*"

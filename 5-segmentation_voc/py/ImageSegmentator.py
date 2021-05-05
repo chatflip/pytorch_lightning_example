@@ -7,11 +7,11 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 class ImageSegmentator(pl.LightningModule):
-    def __init__(self, args, model, criterion, metrics):
+    def __init__(self, args, model, criterions, metrics):
         super(ImageSegmentator, self).__init__()
         self.args = args
         self.model = model
-        self.criterion = criterion
+        self.criterions = criterions
         self.metrics = metrics
 
     def forward(self, x):
@@ -20,10 +20,18 @@ class ImageSegmentator(pl.LightningModule):
     def training_step(self, batch, batch_nb):
         image, target = batch
         output = self(image)
-        loss = self.criterion(output, target)
+        jaccard_loss = self.criterions["jaccard_loss"](output, target)
+        dice_loss = self.criterions["dice_loss"](output, target)
+        lovasz_loss = self.criterions["lovasz_loss"](output, target)
+        bce_loss = self.criterions["bce_loss"](output, target)
+        loss = jaccard_loss + dice_loss + lovasz_loss + bce_loss
         if self.global_step % self.args.log_freq == 0:
             iou_acc = self.metrics(output, target)
             # GPU:0の結果のみlog保存
+            self.log("train_jaccard_loss", jaccard_loss.item())
+            self.log("train_dice_loss", dice_loss.item())
+            self.log("train_lovasz_loss", lovasz_loss.item())
+            self.log("train_bce_loss", bce_loss.item())
             self.log("train_loss", loss.item())
             self.log("train_iou", iou_acc.item())
         return {"loss": loss}
@@ -34,19 +42,39 @@ class ImageSegmentator(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         image, target = batch
         output = self(image)
-        loss = self.criterion(output, target)
+        jaccard_loss = self.criterions["jaccard_loss"](output, target)
+        dice_loss = self.criterions["dice_loss"](output, target)
+        lovasz_loss = self.criterions["lovasz_loss"](output, target)
+        bce_loss = self.criterions["bce_loss"](output, target)
+        loss = jaccard_loss + dice_loss + lovasz_loss + bce_loss
         iou_acc = self.metrics(output, target)
-        return loss.item(), iou_acc.item()
+        return jaccard_loss.item(), dice_loss.item(), lovasz_loss.item(), bce_loss.item(),loss.item(), iou_acc.item()
 
     def validation_epoch_end(self, outputs):
         # TODO: drop_lastの場合計算合わない
+        jaccard_loss_list = []
+        dice_loss_list = []
+        lovasz_loss_list = []
+        bce_loss_list = []
         loss_list = []
         iou_acc_list = []
         for output in outputs:
-            loss_list.append(output[0].cpu().numpy())
-            iou_acc_list.append(output[1].cpu().numpy())
+            jaccard_loss_list.append(output[0].cpu().numpy())
+            dice_loss_list.append(output[1].cpu().numpy())
+            lovasz_loss_list.append(output[2].cpu().numpy())
+            bce_loss_list.append(output[3].cpu().numpy())
+            loss_list.append(output[4].cpu().numpy())
+            iou_acc_list.append(output[5].cpu().numpy())
+        jaccard_loss = sum(jaccard_loss_list) / len(jaccard_loss_list)
+        dice_loss = sum(dice_loss_list) / len(dice_loss_list)
+        lovasz_loss = sum(lovasz_loss_list) / len(lovasz_loss_list)
+        bce_loss = sum(bce_loss_list) / len(bce_loss_list)
         loss = sum(loss_list) / len(loss_list)
         iou_acc = sum(iou_acc_list) / len(iou_acc_list)
+        self.log("val_jaccard_loss", jaccard_loss)
+        self.log("val_dice_loss", dice_loss)
+        self.log("val_lovasz_loss", lovasz_loss)
+        self.log("val_bce_loss", bce_loss)
         self.log("val_loss", loss)
         self.log("val_iou", iou_acc)
 
