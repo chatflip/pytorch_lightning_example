@@ -48,7 +48,14 @@ class ImageSegmentator(pl.LightningModule):
         bce_loss = self.criterions["bce_loss"](output, target)
         loss = jaccard_loss + dice_loss + lovasz_loss + bce_loss
         iou_acc = self.metrics(output, target)
-        return jaccard_loss.item(), dice_loss.item(), lovasz_loss.item(), bce_loss.item(),loss.item(), iou_acc.item()
+        return (
+            jaccard_loss.item(),
+            dice_loss.item(),
+            lovasz_loss.item(),
+            bce_loss.item(),
+            loss.item(),
+            iou_acc.item(),
+        )
 
     def validation_epoch_end(self, outputs):
         # TODO: drop_lastの場合計算合わない

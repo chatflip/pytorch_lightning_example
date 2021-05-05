@@ -1,4 +1,3 @@
-import os
 import time
 
 import hydra
@@ -8,6 +7,7 @@ from CustomMlFlowLogger import CustomMlFlowLogger
 from ImageSegmentator import ImageSegmentator
 from MlflowWriter import MlflowWriter
 from VOCSegDataModule import VOCSegDataModule
+
 
 @hydra.main(config_path="./../config", config_name="config")
 def main(args):
