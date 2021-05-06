@@ -113,7 +113,6 @@ class ImageSegmentator(pl.LightningModule):
                 T_mult=1,
                 eta_min=0.1 * self.args.lr,
                 last_epoch=-1,
-                verbose=True,
             ),
             "interval": "step",
             "name": "lr",
