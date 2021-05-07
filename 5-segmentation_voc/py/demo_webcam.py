@@ -84,7 +84,7 @@ def main(args):
         classes=args.num_classes,
     )
 
-    weight_name = "{}/{}/{}_{}_{}_H{}_W{}-v1.ckpt".format(
+    weight_name = "{}/{}/{}_{}_{}_H{}_W{}.ckpt".format(
         cwd,
         args.path2weight,
         args.exp_name,
