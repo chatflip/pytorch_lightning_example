@@ -29,8 +29,14 @@ def main(args):
         "lovasz_loss": smp.losses.LovaszLoss(mode="binary"),
         "bce_loss": smp.losses.SoftBCEWithLogitsLoss(),
     }
+    criterions_weight = {
+        "jaccard_loss": 1 / len(criterions),
+        "dice_loss": 1 / len(criterions),
+        "lovasz_loss": 1 / len(criterions),
+        "bce_loss": 1 / len(criterions),
+    }
     metrics = smp.utils.metrics.IoU(threshold=args.iou_threshold)
-    plmodel = ImageSegmentator(args, model, criterions, metrics)
+    plmodel = ImageSegmentator(args, model, criterions, criterions_weight, metrics)
     trainer = pl.Trainer(
         logger=logger,
         checkpoint_callback=False,
@@ -48,7 +54,6 @@ def main(args):
 
     trainer.fit(plmodel, datamodule=datamodule)
     trainer.test(plmodel, datamodule=datamodule, verbose=True)
-    writer.move_mlruns()
 
     endtime = time.time()
     interval = endtime - starttime

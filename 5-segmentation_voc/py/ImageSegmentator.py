@@ -7,11 +7,12 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 
 
 class ImageSegmentator(pl.LightningModule):
-    def __init__(self, args, model, criterions, metrics):
+    def __init__(self, args, model, criterions, criterions_weight, metrics):
         super(ImageSegmentator, self).__init__()
         self.args = args
         self.model = model
         self.criterions = criterions
+        self.criterions_weight = criterions_weight
         self.metrics = metrics
 
     def forward(self, x):
@@ -20,22 +21,13 @@ class ImageSegmentator(pl.LightningModule):
     def training_step(self, batch, batch_nb):
         image, target = batch
         output = self(image)
-        jaccard_loss = self.criterions["jaccard_loss"](output, target)
-        dice_loss = self.criterions["dice_loss"](output, target)
-        lovasz_loss = self.criterions["lovasz_loss"](output, target)
-        bce_loss = self.criterions["bce_loss"](output, target)
-        loss = (
-            0.25 * jaccard_loss
-            + 0.25 * dice_loss
-            + 0.25 * lovasz_loss
-            + 0.25 * bce_loss
-        )
+        loss = 0
+        for key in self.criterions.keys():
+            single_loss = self.criterions[key](output, target)
+            loss += self.criterions_weight[key] * single_loss
+            # GPU:0の結果のみlog保存
+            self.log(f"train_{key}", single_loss.item())
         iou_acc = self.metrics(output, target)
-        # GPU:0の結果のみlog保存
-        self.log("train_jaccard_loss", jaccard_loss.item())
-        self.log("train_dice_loss", dice_loss.item())
-        self.log("train_lovasz_loss", lovasz_loss.item())
-        self.log("train_bce_loss", bce_loss.item())
         self.log("train_loss", loss.item())
         self.log("train_iou", iou_acc.item())
         return {"loss": loss}
@@ -109,8 +101,8 @@ class ImageSegmentator(pl.LightningModule):
         lr_scheduler = {
             "scheduler": optim.lr_scheduler.CosineAnnealingWarmRestarts(
                 optimizer,
-                T_0=num_training_samples,
-                T_mult=1,
+                T_0=5 * num_training_samples,
+                T_mult=2,
                 eta_min=0.1 * self.args.lr,
                 last_epoch=-1,
             ),
@@ -133,6 +125,7 @@ class ImageSegmentator(pl.LightningModule):
             mode="min",
             dirpath=os.path.join(cwd, self.args.path2weight),
             filename=filename,
+            save_top_k=1,
         )
         lr_monitor = LearningRateMonitor(logging_interval="step")
         return [checkpoint_callback, lr_monitor]
