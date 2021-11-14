@@ -1,6 +1,6 @@
 exp_name: animeface
-path2db: ./../datasets/animeface/data
-path2weight: weight
+dataset_root: ./../datasets/animeface/data
+weight_root: weight
 batch_size: 64
 image_size: 256
 crop_size: 224
@@ -12,7 +12,7 @@ restart: false
 seed: 1
 print_freq: 10
 log_freq: 10
-apex: false
+apex: true
 
 optimizer:
   lr: 0.0045

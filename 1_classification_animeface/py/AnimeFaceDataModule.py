@@ -7,14 +7,12 @@ from AnimeFaceDataset import AnimeFaceDataset
 from AnimeFaceDownloader import AnimeFaceDownloader
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
-from utils import get_worker_init
 
 
 class AnimeFaceDataModule(pl.LightningDataModule):
     def __init__(self, args):
         super().__init__()
         self.args = args
-        self.dims = (3, args.crop_size, args.crop_size)
 
     def prepare_data(self):
         AnimeFaceDownloader()
@@ -33,11 +31,12 @@ class AnimeFaceDataModule(pl.LightningDataModule):
         cwd = hydra.utils.get_original_cwd()
         if train:
             dataset = AnimeFaceDataset(
-                os.path.join(cwd, self.args.path2db, "train"), self.train_transforms
+                os.path.join(cwd, self.args.dataset_root, "train"),
+                self.train_transforms,
             )
         else:
             dataset = AnimeFaceDataset(
-                os.path.join(cwd, self.args.path2db, "val"), self.val_transforms
+                os.path.join(cwd, self.args.dataset_root, "val"), self.val_transforms
             )
 
         return torch.utils.data.DataLoader(
@@ -47,13 +46,13 @@ class AnimeFaceDataModule(pl.LightningDataModule):
             num_workers=os.cpu_count(),
             pin_memory=True,
             drop_last=train,
-            worker_init_fn=get_worker_init(self.args.seed),
         )
 
     @property
     def train_transforms(self):
         return transforms.Compose(
             [
+                transforms.TrivialAugmentWide(),
                 transforms.Resize(
                     self.args.image_size, InterpolationMode.BILINEAR
                 ),  # リサイズ

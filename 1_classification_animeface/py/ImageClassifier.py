@@ -62,6 +62,7 @@ class ImageClassifier(pl.LightningModule):
         self.validation_epoch_end(outputs)
 
     def configure_optimizers(self):
+        num_train_sample = len(self.trainer.datamodule.train_dataloader())
         optimizer = optim.SGD(
             self.parameters(),
             lr=self.args.optimizer.lr,
@@ -70,7 +71,7 @@ class ImageClassifier(pl.LightningModule):
         )  # 最適化方法定義
         scheduler = optim.lr_scheduler.StepLR(
             optimizer,
-            step_size=self.args.optimizer.lr_step_size * len(self.train_dataloader()),
+            step_size=self.args.optimizer.lr_step_size * num_train_sample,
             gamma=self.args.optimizer.lr_gamma,
         )
         return [optimizer], [scheduler]
@@ -80,7 +81,7 @@ class ImageClassifier(pl.LightningModule):
         checkpoint_callback = ModelCheckpoint(
             monitor="val_loss",
             mode="min",
-            dirpath=os.path.join(cwd, self.args.path2weight),
+            dirpath=os.path.join(cwd, self.args.weight_root),
             filename=f"{self.args.exp_name}_mobilenetv2_best",
         )
         return [checkpoint_callback]

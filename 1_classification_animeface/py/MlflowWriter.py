@@ -67,11 +67,20 @@ class MlflowWriter:
         dst_mlrun_path = os.path.join(
             hydra.utils.get_original_cwd(), "mlruns", "1", run_hash
         )
-        shutil.copytree(src_mlrun_path, dst_mlrun_path)
+        shutil.copytree(src_mlrun_path, dst_mlrun_path, dirs_exist_ok=True)
         overwrite_meta_yaml(dst_mlrun_path, run_hash)
         # experimentのコピー
         dst_exp_path = os.path.join(hydra.utils.get_original_cwd(), "mlruns", "1")
+
         copy_exp_meta_yaml(src_mlrun_dir, dst_exp_path)
+
+    def write_hydra_args(self, args):
+        for key in args:
+            self.log_param(key, args[key])
+        self.log_params_from_omegaconf_dict(args)
+        self.log_artifact(os.path.join(os.getcwd(), ".hydra", "config.yaml"))
+        self.log_artifact(os.path.join(os.getcwd(), ".hydra", "hydra.yaml"))
+        self.log_artifact(os.path.join(os.getcwd(), ".hydra", "overrides.yaml"))
 
 
 def overwrite_meta_yaml(run_path, run_hash):

@@ -100,4 +100,4 @@ class AnimeFaceDownloader:
 
 
 if __name__ == "__main__":
-    a = AnimeFaceDownloader()
+    AnimeFaceDownloader()

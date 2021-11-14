@@ -1,3 +1,2 @@
 #!/bin/bash
-# poetry shell
-python py/main.py apex=true
+python py/train.py

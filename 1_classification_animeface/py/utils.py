@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import random
+import time
 
 import numpy as np
 import torch
@@ -78,8 +79,23 @@ def seed_everything(seed=1234):
     torch.backends.cudnn.deterministic = True
 
 
-def get_worker_init(seed=1234):
-    def worker_init_fn(worker_id):
-        random.seed(worker_id + seed)
+class ElapsedTimePrinter:
+    def __init__(self):
+        self.start_time = 0
+        self.elapsed_time = 0
 
-    return worker_init_fn
+    def start(self):
+        self.start_time = time.time()
+
+    def end(self):
+        self.elapsed_time = time.time() - self.start_time
+        self.print()
+
+    def print(self):
+        print(
+            "elapsed time = {0:d}h {1:d}m {2:d}s".format(
+                int(self.elapsed_time / 3600),
+                int((self.elapsed_time % 3600) / 60),
+                int((self.elapsed_time % 3600) % 60),
+            )
+        )
