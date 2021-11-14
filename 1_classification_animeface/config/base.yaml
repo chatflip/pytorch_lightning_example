@@ -6,7 +6,7 @@ image_size: 256
 crop_size: 224
 num_classes: 176
 start_epoch: 1
-epochs: 10
+epochs: 30
 evaluate: false
 restart: false
 seed: 1

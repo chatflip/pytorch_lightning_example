@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-import os
-import random
 import time
 
-import numpy as np
 import torch
 
 
@@ -66,17 +62,6 @@ def accuracy(output, target, topk=(1,)):
             correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
-
-
-# code from https://www.kaggle.com/bminixhofer/
-#           deterministic-neural-networks-using-pytorch
-def seed_everything(seed=1234):
-    random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
 
 
 class ElapsedTimePrinter:
