@@ -41,13 +41,14 @@ def get_pascal_labels():
 
 
 def get_transform(args):
-    normalize = A.Normalize(
-        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], max_pixel_value=255.0
-    )
     transform = A.Compose(
         [
             A.Resize(args.arch.image_height, args.arch.image_width),
-            normalize,
+            A.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225],
+                max_pixel_value=255.0,
+            ),
             ToTensorV2(),
         ]
     )
@@ -61,16 +62,15 @@ def preprocess_image(image, transform):
 
 
 def decode_result(result):
-    result = result.squeeze(0)
-    index = result.argmax(0)
+    index = result.argmax(0).squeeze(0)
     return index.cpu().numpy()
 
 
-def make_overlay(frame, seg_image):
+def make_overlay(frame, color_map, index):
     height, width = frame.shape[:2]
-    frame = cv2.resize(frame, seg_image.shape[:2], cv2.INTER_AREA)
+    seg_image = color_map[index]
+    seg_image = cv2.resize(frame, (width, height), cv2.INTER_AREA)
     overlay_image = cv2.addWeighted(frame, 0.4, seg_image, 0.6, 0.8)
-    overlay_image = cv2.resize(overlay_image, (width, height), cv2.INTER_CUBIC)
     return overlay_image
 
 
@@ -86,7 +86,7 @@ def main(args):
 
     weight_name = "{}/{}/{}_{}_{}_H{}_W{}.ckpt".format(
         cwd,
-        args.path2weight,
+        args.weight_root,
         args.exp_name,
         args.arch.decoder,
         args.arch.encoder,
@@ -99,6 +99,7 @@ def main(args):
         args=args,
         model=model,
         criterions=None,
+        criterions_weight=None,
         metrics=None,
     )
 
@@ -127,7 +128,7 @@ def main(args):
         preprocess_time = time.perf_counter() - start_time
 
         start_time = time.perf_counter()
-        with torch.no_grad():
+        with torch.inference_mode():
             result = model(tensor)
         inference_time = time.perf_counter() - start_time
 
@@ -136,8 +137,7 @@ def main(args):
         postprocess_time = time.perf_counter() - start_time
 
         start_time = time.perf_counter()
-        seg_image = color_map[index]
-        overlay = make_overlay(frame, seg_image)
+        overlay = make_overlay(frame, color_map, index)
         visualize_time = time.perf_counter() - start_time
 
         cv2.imshow("result", overlay)

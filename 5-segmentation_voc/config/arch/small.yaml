@@ -1,4 +1,3 @@
-# @package _group_
 encoder: timm-efficientnet-b0
 decoder: DeepLabV3Plus
 image_height: 512

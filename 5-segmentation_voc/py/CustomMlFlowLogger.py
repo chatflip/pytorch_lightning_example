@@ -48,4 +48,3 @@ class CustomMlFlowLogger(LightningLoggerBase):
         # Optional. Any code that needs to be run after training
         # finishes goes here
         self.writer.set_terminated()
-        self.writer.move_mlruns()

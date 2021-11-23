@@ -93,7 +93,7 @@ class ImageSegmentator(pl.LightningModule):
         checkpoint_callback = ModelCheckpoint(
             monitor="val_loss",
             mode="min",
-            dirpath=os.path.join(cwd, self.args.path2weight),
+            dirpath=os.path.join(cwd, self.args.weight_root),
             filename=filename,
             save_top_k=1,
         )

@@ -1,5 +1,4 @@
 import os
-import random
 
 import albumentations as A
 import hydra
@@ -14,7 +13,6 @@ class VOCSegDataModule(pl.LightningDataModule):
     def __init__(self, args):
         super().__init__()
         self.args = args
-        self.dims = (3, args.arch.image_height, args.arch.image_width)
 
     def prepare_data(self):
         VOC2012Downloader()
@@ -33,14 +31,14 @@ class VOCSegDataModule(pl.LightningDataModule):
         cwd = hydra.utils.get_original_cwd()
         if train:
             dataset = VOCSegDataset(
-                os.path.join(cwd, self.args.path2db),
+                os.path.join(cwd, self.args.dataset_root),
                 "train",
                 self.args.num_classes,
                 transform=self.train_transforms,
             )
         else:
             dataset = VOCSegDataset(
-                os.path.join(cwd, self.args.path2db),
+                os.path.join(cwd, self.args.dataset_root),
                 "val",
                 self.args.num_classes,
                 transform=self.val_transforms,
@@ -53,7 +51,6 @@ class VOCSegDataModule(pl.LightningDataModule):
             num_workers=os.cpu_count(),
             pin_memory=True,
             drop_last=train,
-            worker_init_fn=self.get_worker_init(self.args.seed),
         )
 
     @property
@@ -75,8 +72,8 @@ class VOCSegDataModule(pl.LightningDataModule):
                     width=self.args.arch.image_width,
                     always_apply=True,
                 ),
-                A.IAAAdditiveGaussianNoise(p=0.2),
-                A.IAAPerspective(p=0.5),
+                A.GaussNoise(p=0.2),
+                A.Perspective(p=0.5),
                 A.OneOf(
                     [
                         A.CLAHE(p=1),
@@ -87,7 +84,7 @@ class VOCSegDataModule(pl.LightningDataModule):
                 ),
                 A.OneOf(
                     [
-                        A.IAASharpen(p=1),
+                        A.Sharpen(p=1),
                         A.Blur(blur_limit=3, p=1),
                         A.MotionBlur(blur_limit=3, p=1),
                     ],
@@ -122,10 +119,3 @@ class VOCSegDataModule(pl.LightningDataModule):
                 ToTensorV2(),
             ]
         )
-
-    @staticmethod
-    def get_worker_init(seed=1234):
-        def worker_init_fn(worker_id):
-            random.seed(worker_id + seed)
-
-        return worker_init_fn

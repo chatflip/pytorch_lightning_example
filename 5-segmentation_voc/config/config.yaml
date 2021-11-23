@@ -1,9 +1,9 @@
 exp_name: voc2012
-path2db: ./../datasets/VOCdevkit/VOC2012
-path2weight: weight
+dataset_root: ./../datasets/VOCdevkit/VOC2012
+weight_root: weight
 num_classes: 21
 lr: 1e-4
-epochs: 30
+epochs: 50
 iou_threshold: 0.9
 print_freq: 10
 log_freq: 10
@@ -11,4 +11,5 @@ seed: 1
 apex: True
 
 defaults:
+  - _self_
   - arch: small
