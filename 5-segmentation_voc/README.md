@@ -1,14 +1,17 @@
-5-segmentation_voc
-===
+# 5-segmentation_voc
+
 Semantic Segmentationを用いた領域分割
 
 ## Description
+
 ### 使用データセット
 
 ### 使用ネットワーク
 
 ## Usage
+
 ### 実行
+
 ```
 # ダウンロード，フォルダ構成
 git clone --depth 1 git@github.com:JunMa11/SegLoss.git py/SegLoss-master
