@@ -51,9 +51,9 @@ class ImageClassifier(pl.LightningModule):
         loss = sum(loss_list) / len(loss_list)
         acc1 = sum(acc1_list) / len(acc1_list)
         acc5 = sum(acc5_list) / len(acc5_list)
-        self.log("val_loss", loss)
-        self.log("val_acc1", acc1)
-        self.log("val_acc5", acc5)
+        self.log("val_loss", float(loss))
+        self.log("val_acc1", float(acc1))
+        self.log("val_acc5", float(acc5))
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
