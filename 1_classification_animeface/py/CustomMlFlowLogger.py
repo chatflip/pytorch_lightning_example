@@ -1,9 +1,9 @@
-from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loggers.base import rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger
+from lightning_fabric.loggers.logger import rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 
 
-class CustomMlFlowLogger(LightningLoggerBase):
+class CustomMlFlowLogger(Logger):
     def __init__(self, writer):
         super(CustomMlFlowLogger, self).__init__()
         self.writer = writer
