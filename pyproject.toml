@@ -6,8 +6,8 @@ authors = ["chatflip <oo.chat.flip@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8,<3.10"
-torch = "^1.10.0"
-torchvision = "^0.11.1"
+torch = {version = "1.13.1+cu117", source = "torch_cu117"}
+torchvision = {version = "0.14.1+cu117", source = "torch_cu117"}
 hydra-core = "^1.1.1"
 mlflow = "^1.21.0"
 pytorch-lightning = "^1.5.0"
@@ -23,6 +23,12 @@ flake8 = "4.0.1"
 isort = "5.10.1"
 mypy = "0.910"
 click = "8.0.2"
+
+[[tool.poetry.source]]
+name = "torch_cu117"
+url = "https://download.pytorch.org/whl/cu117/"
+default = false
+secondary = true
 
 [tool.pysen]
 version = "0.10"
