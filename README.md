@@ -4,7 +4,9 @@
 
 ## Requirement
 
-Mac or Ubuntu
+- Ubuntu
+- pyenv
+- poetry >= 1.2
 
 ## Installation
 
