@@ -38,7 +38,7 @@ def main(args):
     trainer = pl.Trainer(
         logger=logger,
         enable_checkpointing=False,
-        gpus=2,
+        gpus=1,
         max_epochs=args.epochs,
         log_every_n_steps=args.log_freq,
         strategy="dp",
