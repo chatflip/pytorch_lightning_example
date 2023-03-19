@@ -1,6 +1,3 @@
-import os
-
-import hydra
 import pytorch_lightning as pl
 import torch.optim as optim
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -51,9 +48,9 @@ class ImageClassifier(pl.LightningModule):
         loss = sum(loss_list) / len(loss_list)
         acc1 = sum(acc1_list) / len(acc1_list)
         acc5 = sum(acc5_list) / len(acc5_list)
-        self.log("val_loss", loss)
-        self.log("val_acc1", acc1)
-        self.log("val_acc5", acc5)
+        self.log("val_loss", float(loss))
+        self.log("val_acc1", float(acc1))
+        self.log("val_acc5", float(acc5))
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
@@ -75,13 +72,3 @@ class ImageClassifier(pl.LightningModule):
             gamma=self.args.optimizer.lr_gamma,
         )
         return [optimizer], [scheduler]
-
-    def configure_callbacks(self):
-        cwd = hydra.utils.get_original_cwd()
-        checkpoint_callback = ModelCheckpoint(
-            monitor="val_loss",
-            mode="min",
-            dirpath=os.path.join(cwd, self.args.weight_root),
-            filename=f"{self.args.exp_name}_mobilenetv2_best",
-        )
-        return [checkpoint_callback]
