@@ -9,6 +9,7 @@ from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 
 
+
 class AnimeFaceDataModule(pl.LightningDataModule):
     def __init__(self, args):
         super().__init__()

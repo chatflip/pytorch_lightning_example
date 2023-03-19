@@ -1,6 +1,3 @@
-import os
-
-import hydra
 import pytorch_lightning as pl
 import torch.optim as optim
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -75,13 +72,3 @@ class ImageClassifier(pl.LightningModule):
             gamma=self.args.optimizer.lr_gamma,
         )
         return [optimizer], [scheduler]
-
-    def configure_callbacks(self):
-        cwd = hydra.utils.get_original_cwd()
-        checkpoint_callback = ModelCheckpoint(
-            monitor="val_loss",
-            mode="min",
-            dirpath=os.path.join(cwd, self.args.weight_root),
-            filename=f"{self.args.exp_name}_mobilenetv2_best",
-        )
-        return [checkpoint_callback]
