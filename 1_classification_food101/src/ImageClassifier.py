@@ -1,6 +1,5 @@
 import pytorch_lightning as pl
 import torch.optim as optim
-from pytorch_lightning.callbacks import ModelCheckpoint
 from utils import accuracy
 
 
