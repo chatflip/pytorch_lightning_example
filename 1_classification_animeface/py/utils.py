@@ -70,10 +70,10 @@ class ElapsedTimePrinter:
         self.elapsed_time = 0
 
     def start(self):
-        self.start_time = time.time()
+        self.start_time = time.perf_counter()
 
     def end(self):
-        self.elapsed_time = time.time() - self.start_time
+        self.elapsed_time = time.perf_counter() - self.start_time
         self.print()
 
     def print(self):
