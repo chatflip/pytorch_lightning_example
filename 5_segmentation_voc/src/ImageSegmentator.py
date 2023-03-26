@@ -54,7 +54,7 @@ class ImageSegmentator(pl.LightningModule):
         for key in outputs[0].keys():
             # validation_stepのdictのkeyごとに集計
             results = [outputs[i][key].cpu().numpy() for i in range(len(outputs))]
-            self.log(f"val_{key}", sum(results) / len(results))
+            self.log(f"val_{key}", float(sum(results) / len(results)))
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
@@ -82,20 +82,5 @@ class ImageSegmentator(pl.LightningModule):
         return [optimizer], [lr_scheduler]
 
     def configure_callbacks(self):
-        cwd = hydra.utils.get_original_cwd()
-        filename = "{}_{}_{}_H{}_W{}".format(
-            self.args.exp_name,
-            self.args.arch.decoder,
-            self.args.arch.encoder,
-            self.args.arch.image_height,
-            self.args.arch.image_width,
-        )
-        checkpoint_callback = ModelCheckpoint(
-            monitor="val_loss",
-            mode="min",
-            dirpath=os.path.join(cwd, self.args.weight_root),
-            filename=filename,
-            save_top_k=1,
-        )
         lr_monitor = LearningRateMonitor(logging_interval="step")
-        return [checkpoint_callback, lr_monitor]
+        return [lr_monitor]

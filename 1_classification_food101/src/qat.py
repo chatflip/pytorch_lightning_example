@@ -5,11 +5,9 @@ import pytorch_lightning as pl
 import timm
 import torch
 import torch.nn as nn
-import yaml
 from ClassificationDataModule import ClassificationDataModule
 from hydra.utils import to_absolute_path
 from ImageClassifier import ImageClassifier
-from model import mobilenet_v2
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint, QuantizationAwareTraining
 from pytorch_lightning.callbacks.progress import TQDMProgressBar

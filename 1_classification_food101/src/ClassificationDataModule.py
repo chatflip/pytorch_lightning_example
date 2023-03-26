@@ -1,6 +1,5 @@
 import os
 
-import hydra
 import pytorch_lightning as pl
 import torch
 from Food101Dataset import Food101Dataset

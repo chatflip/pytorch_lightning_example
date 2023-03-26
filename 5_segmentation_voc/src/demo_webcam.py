@@ -55,6 +55,9 @@ def get_transform(args):
     return transform
 
 
+from omegaconf import OmegaConf
+
+
 def preprocess_image(image, transform):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     tensor = transform(image=image)["image"]
@@ -74,9 +77,9 @@ def make_overlay(frame, color_map, index):
     return overlay_image
 
 
-@hydra.main(config_path="./../config", config_name="config")
+@hydra.main(version_base=None, config_path="../config", config_name="config")
 def main(args):
-    print(args)
+    print(OmegaConf.to_yaml(args))
     cwd = hydra.utils.get_original_cwd()
     model = getattr(smp, args.arch.decoder)(
         encoder_name=args.arch.encoder,

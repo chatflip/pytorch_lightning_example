@@ -44,12 +44,14 @@ line_length = 88
 py_version = "py39"
 [[tool.pysen.lint.mypy_targets]]
 paths = [
-    "1_classification_food101/"
+    "1_classification_food101/",
+    "5_segmentation_voc/"
 ]
 
 [tool.pysen.lint.source]
 include_globs = [
-    "1_classification_food101/src/**/*.py"
+    "1_classification_food101/src/**/*.py",
+    "5_segmentation_voc/src/**/*.py"
 ]
 
 [tool.isort]

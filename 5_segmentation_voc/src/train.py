@@ -1,22 +1,28 @@
 import hydra
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
-from CustomMlFlowLogger import CustomMlFlowLogger
+import torch
+from hydra.utils import to_absolute_path
 from ImageSegmentator import ImageSegmentator
-from MlflowWriter import MlflowWriter
+from omegaconf import DictConfig, OmegaConf
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.progress import TQDMProgressBar
+from pytorch_lightning.loggers import MLFlowLogger
+from segmentation_models_pytorch import utils as smp_utils
 from utils import ElapsedTimePrinter
 from VOCSegDataModule import VOCSegDataModule
 
 
-@hydra.main(config_path="./../config", config_name="config")
-def main(args):
-    print(args)
-    timer = ElapsedTimePrinter()
-    writer = MlflowWriter(args.exp_name)
-    writer.write_hydra_args(args)
-    logger = CustomMlFlowLogger(writer)
+@hydra.main(version_base=None, config_path="../config", config_name="config")
+def main(args: DictConfig) -> None:
+    print(OmegaConf.to_yaml(args))
     pl.seed_everything(args.seed)
+
+    mlf_logger = MLFlowLogger(
+        experiment_name="5_segmentation_voc",
+        log_model=True,
+    )
+    mlf_logger.log_hyperparams(args)
 
     model = getattr(smp, args.arch.decoder)(
         encoder_name=args.arch.encoder,
@@ -34,13 +40,20 @@ def main(args):
         "lovasz_loss": 1 / len(criterions),
         "focal_loss": 1 / len(criterions),
     }
-    metrics = smp.utils.metrics.IoU(threshold=args.iou_threshold)
+    metrics = smp_utils.metrics.IoU(threshold=args.iou_threshold)
     plmodel = ImageSegmentator(args, model, criterions, criterions_weight, metrics)
-    callbacks = [TQDMProgressBar(args.print_freq)]
+    checkpoint_callback = ModelCheckpoint(
+        monitor="val_loss",
+        mode="min",
+        dirpath=to_absolute_path(args.weight_root),
+        filename=f"{args.exp_name}_{args.arch.encoder}_{args.arch.decoder}_best",
+    )
+    callbacks = [TQDMProgressBar(args.print_freq), checkpoint_callback]
+
     trainer = pl.Trainer(
-        logger=logger,
-        enable_checkpointing=False,
-        gpus=2,
+        logger=mlf_logger,
+        accelerator="gpu",
+        devices=1,
         max_epochs=args.epochs,
         log_every_n_steps=args.log_freq,
         strategy="dp",
@@ -50,11 +63,11 @@ def main(args):
         callbacks=callbacks,
     )
 
+    timer = ElapsedTimePrinter()
     timer.start()
     trainer.fit(plmodel, datamodule=datamodule)
-    trainer.test(plmodel, datamodule=datamodule, verbose=True)
-    writer.move_mlruns()
     timer.end()
+    trainer.test(plmodel, datamodule=datamodule, verbose=True)
 
 
 if __name__ == "__main__":
