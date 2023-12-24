@@ -1,7 +1,6 @@
 import hydra
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
-import torch
 from hydra.utils import to_absolute_path
 from ImageSegmentator import ImageSegmentator
 from omegaconf import DictConfig, OmegaConf

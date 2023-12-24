@@ -85,7 +85,7 @@ class InvertedResidual(nn.Module):
 
 
 class MobileNetV2(nn.Module):
-    def __init__(
+    def __init__(  # noqa: C901
         self,
         num_classes=1000,
         width_mult=1.0,
@@ -97,9 +97,11 @@ class MobileNetV2(nn.Module):
         MobileNet V2 main class
         Args:
             num_classes (int): Number of classes
-            width_mult (float): Width multiplier - adjusts number of channels in each layer by this amount
+            width_mult (float): Width multiplier - adjusts number of channels
+                in each layer by this amount
             inverted_residual_setting: Network structure
-            round_nearest (int): Round the number of channels in each layer to be a multiple of this number
+            round_nearest (int): Round the number of channels
+                in each layer to be a multiple of this number
             Set to 1 to turn off rounding
             block: Module specifying inverted residual building block for mobilenet
         """
@@ -172,10 +174,13 @@ class MobileNetV2(nn.Module):
                 nn.init.zeros_(m.bias)
 
     def _forward_impl(self, x):
-        # This exists since TorchScript doesn't support inheritance, so the superclass method
-        # (this one) needs to have a name other than `forward` that can be accessed in a subclass
+        # This exists since TorchScript doesn't support inheritance,
+        # so the superclass method
+        # (this one) needs to have a name other than `forward`
+        # that can be accessed in a subclass
         x = self.features(x)
-        # Cannot use "squeeze" as batch-size can be 1 => must use reshape with x.shape[0]
+        # Cannot use "squeeze" as batch-size can be 1 =>
+        # must use reshape with x.shape[0]
         x = nn.functional.adaptive_avg_pool2d(x, 1).reshape(x.shape[0], -1)
         x = self.classifier(x)
         return x
