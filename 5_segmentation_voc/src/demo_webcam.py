@@ -9,6 +9,7 @@ import segmentation_models_pytorch as smp
 import torch
 from albumentations.pytorch import ToTensorV2
 from ImageSegmentator import ImageSegmentator
+from omegaconf import OmegaConf
 
 
 def get_pascal_labels():
@@ -53,9 +54,6 @@ def get_transform(args):
         ]
     )
     return transform
-
-
-from omegaconf import OmegaConf
 
 
 def preprocess_image(image, transform):
@@ -107,7 +105,9 @@ def main(args):
     )
 
     color_map = get_pascal_labels()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # cpuとgpu自動選択
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )  # cpuとgpu自動選択
     model = model.eval().to(device)
 
     camera_width = 1280

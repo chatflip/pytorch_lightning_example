@@ -1,9 +1,6 @@
-import os
-
-import hydra
 import pytorch_lightning as pl
 import torch.optim as optim
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import LearningRateMonitor
 
 
 class ImageSegmentator(pl.LightningModule):

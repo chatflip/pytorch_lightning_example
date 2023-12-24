@@ -23,7 +23,7 @@ class Food101Dataset(Dataset):
 
         with open(image_dict_path) as f:
             image_dict = json.load(f)
-        for (i, class_name) in enumerate(class_names):
+        for i, class_name in enumerate(class_names):
             filenames = image_dict[class_name]
             image_paths = [os.path.join(image_root, f"{f}.jpg") for f in filenames]
             self.image_labels.extend([i] * len(filenames))

@@ -69,7 +69,9 @@ class ClassificationDataModule(pl.LightningDataModule):
                 transforms.Resize(
                     (self.crop_height, self.crop_width), InterpolationMode.BILINEAR
                 ),  # リサイズ
-                transforms.RandomCrop((self.input_height, self.input_width)),  # クロップ
+                transforms.RandomCrop(
+                    (self.input_height, self.input_width)
+                ),  # クロップ
                 transforms.RandomHorizontalFlip(p=0.5),  # 左右反転
                 transforms.ToTensor(),  # テンソル化
                 transforms.Normalize(
