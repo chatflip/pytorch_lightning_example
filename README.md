@@ -5,8 +5,7 @@
 ## Requirement
 
 - Ubuntu
-- pyenv
-- poetry >= 1.2
+- Poetry >= 1.6
 
 ## Installation
 
@@ -14,4 +13,15 @@
 
 ```bash
 poetry install
+pre-commit install
+```
+
+## Usage
+
+### formatter, linter, type checker
+
+```bash
+ruff format
+ruff check . --fix
+mypy .
 ```

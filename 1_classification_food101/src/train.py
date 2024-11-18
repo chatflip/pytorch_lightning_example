@@ -2,7 +2,7 @@ import os
 import shutil
 
 import hydra
-import pytorch_lightning as pl
+import pytorch_lightning as L
 import timm
 import torch
 import torch.nn as nn
@@ -26,7 +26,7 @@ def convert_script_model(args, model):
 @hydra.main(version_base=None, config_path="../config", config_name="base")
 def main(args: DictConfig) -> None:
     print(OmegaConf.to_yaml(args))
-    pl.seed_everything(args.seed)
+    L.seed_everything(args.seed)
 
     mlf_logger = MLFlowLogger(
         experiment_name="1_classification_food101",
@@ -50,13 +50,13 @@ def main(args: DictConfig) -> None:
         filename=f"{args.exp_name}_{args.model_name}_best",
     )
     callbacks = [TQDMProgressBar(args.print_freq), checkpoint_callback]
-    trainer = pl.Trainer(
+    trainer = L.Trainer(
         logger=mlf_logger,
         accelerator="gpu",
         devices=1,
         max_epochs=args.epochs,
         log_every_n_steps=args.log_freq,
-        strategy="dp",
+        strategy="ddp",
         precision=16 if args.apex else 32,
         deterministic=True,
         num_sanity_val_steps=0,

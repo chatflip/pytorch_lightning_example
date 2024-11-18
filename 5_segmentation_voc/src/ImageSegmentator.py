@@ -1,11 +1,12 @@
-import pytorch_lightning as pl
+import pytorch_lightning as L
 import torch.optim as optim
 from pytorch_lightning.callbacks import LearningRateMonitor
 
 
-class ImageSegmentator(pl.LightningModule):
+class ImageSegmentator(L.LightningModule):
     def __init__(self, args, model, criterions, criterions_weight, metrics):
-        super(ImageSegmentator, self).__init__()
+        super().__init__()
+        self.validation_step_outputs = []
         self.args = args
         self.model = model
         self.criterions = criterions
@@ -44,20 +45,24 @@ class ImageSegmentator(pl.LightningModule):
         iou_acc = self.metrics(output, target)
         result_dict["loss"] = loss.item()
         result_dict["iou"] = iou_acc.item()
+        self.validation_step_outputs.append(result_dict)
         return result_dict
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         # TODO: drop_last分のbatchsizeの考慮されてないから厳密ではない
-        for key in outputs[0].keys():
+        for key in self.validation_step_outputs[0].keys():
             # validation_stepのdictのkeyごとに集計
-            results = [outputs[i][key].cpu().numpy() for i in range(len(outputs))]
+            results = [
+                self.validation_step_outputs[i][key]
+                for i in range(len(self.validation_step_outputs))
+            ]
             self.log(f"val_{key}", float(sum(results) / len(results)))
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
 
-    def test_epoch_end(self, outputs):
-        self.validation_epoch_end(outputs)
+    def on_test_epoch_end(self):
+        self.on_validation_epoch_end()
 
     def configure_optimizers(self):
         num_training_samples = len(self.trainer.datamodule.train_dataloader())

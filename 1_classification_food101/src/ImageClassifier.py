@@ -1,11 +1,12 @@
-import pytorch_lightning as pl
+import pytorch_lightning as L
 import torch.optim as optim
 from utils import accuracy
 
 
-class ImageClassifier(pl.LightningModule):
+class ImageClassifier(L.LightningModule):
     def __init__(self, args, model, criterion):
-        super(ImageClassifier, self).__init__()
+        super().__init__()
+        self.validation_step_outputs = []
         self.args = args
         self.model = model
         self.criterion = criterion
@@ -33,14 +34,15 @@ class ImageClassifier(pl.LightningModule):
         output = self(image)
         loss = self.criterion(output, target)
         acc1, acc5 = accuracy(output, target, topk=(1, 5))
+        self.validation_step_outputs.append([loss, acc1, acc5])
         return loss.item(), acc1.item(), acc5.item()
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         # TODO: drop_lastの場合計算合わない
         loss_list = []
         acc1_list = []
         acc5_list = []
-        for output in outputs:
+        for output in self.validation_step_outputs:
             loss_list.append(output[0].cpu().numpy())
             acc1_list.append(output[1].cpu().numpy())
             acc5_list.append(output[2].cpu().numpy())
@@ -54,8 +56,8 @@ class ImageClassifier(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
 
-    def test_epoch_end(self, outputs):
-        self.validation_epoch_end(outputs)
+    def on_test_epoch_end(self):
+        self.on_validation_epoch_end()
 
     def configure_optimizers(self):
         num_train_sample = len(self.trainer.datamodule.train_dataloader())
