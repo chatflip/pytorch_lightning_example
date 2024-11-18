@@ -1,6 +1,6 @@
 import os
 
-import pytorch_lightning as pl
+import pytorch_lightning as L
 import torch
 from Food101Dataset import Food101Dataset
 from Food101Downloader import Food101Downloader
@@ -8,7 +8,7 @@ from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 
 
-class ClassificationDataModule(pl.LightningDataModule):
+class ClassificationDataModule(L.LightningDataModule):
     def __init__(self, args, model_cfg):
         super().__init__()
         self.args = args

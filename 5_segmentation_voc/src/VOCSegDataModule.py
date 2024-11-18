@@ -1,15 +1,16 @@
 import os
 
+import cv2
 import albumentations as A
 import hydra
-import pytorch_lightning as pl
+import pytorch_lightning as L
 import torch
 from albumentations.pytorch import ToTensorV2
 from VOC2012Downloader import VOC2012Downloader
 from VOCSegDataset import VOCSegDataset
 
 
-class VOCSegDataModule(pl.LightningDataModule):
+class VOCSegDataModule(L.LightningDataModule):
     def __init__(self, args):
         super().__init__()
         self.args = args
@@ -59,13 +60,13 @@ class VOCSegDataModule(pl.LightningDataModule):
             [
                 A.HorizontalFlip(p=0.5),
                 A.ShiftScaleRotate(
-                    scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=1, border_mode=0
+                    scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=1,border_mode=cv2.BORDER_CONSTANT, value=0
                 ),
                 A.PadIfNeeded(
                     min_height=self.args.arch.image_height,
                     min_width=self.args.arch.image_width,
                     always_apply=True,
-                    border_mode=0,
+                    value=0,
                 ),
                 A.RandomCrop(
                     height=self.args.arch.image_height,

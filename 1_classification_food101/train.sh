@@ -1,3 +1,3 @@
 #!/bin/bash
-#python py/train.py
-#python py/qat.py
+#python src/train.py
+#python src/qat.py

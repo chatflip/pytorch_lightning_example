@@ -1,7 +1,7 @@
 import os
 
 import hydra
-import pytorch_lightning as pl
+import pytorch_lightning as L
 import timm
 import torch
 import torch.nn as nn
@@ -14,7 +14,6 @@ from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from pytorch_lightning.loggers import MLFlowLogger
 from utils import ElapsedTimePrinter
 
-
 def convert_script_model(args, model):
     model = model.eval().to("cpu")
     cwd = hydra.utils.get_original_cwd()
@@ -26,7 +25,7 @@ def convert_script_model(args, model):
 @hydra.main(version_base=None, config_path="../config", config_name="qat")
 def main(args: DictConfig) -> None:
     print(OmegaConf.to_yaml(args))
-    pl.seed_everything(args.seed)
+    L.seed_everything(args.seed)
 
     mlf_logger = MLFlowLogger(
         experiment_name="1_classification_animeface",
@@ -62,7 +61,7 @@ def main(args: DictConfig) -> None:
         QuantizationAwareTraining(),
         checkpoint_callback,
     ]
-    trainer = pl.Trainer(
+    trainer = L.Trainer(
         logger=mlf_logger,
         accelerator="gpu",
         devices=1,
