@@ -14,6 +14,7 @@ from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from pytorch_lightning.loggers import MLFlowLogger
 from utils import ElapsedTimePrinter
 
+
 def convert_script_model(args, model):
     model = model.eval().to("cpu")
     cwd = hydra.utils.get_original_cwd()

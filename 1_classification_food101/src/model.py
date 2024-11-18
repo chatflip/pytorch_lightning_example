@@ -16,8 +16,7 @@ model_urls = {
 
 
 def _make_divisible(v, divisor, min_value=None):
-    """
-    This function is taken from the original tf repo.
+    """This function is taken from the original tf repo.
     It ensures that all layers have a channel number that is divisible by 8
     It can be seen here:
     https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
@@ -93,8 +92,7 @@ class MobileNetV2(nn.Module):
         round_nearest=8,
         block=None,
     ):
-        """
-        MobileNet V2 main class
+        """MobileNet V2 main class
         Args:
             num_classes (int): Number of classes
             width_mult (float): Width multiplier - adjusts number of channels
@@ -191,9 +189,9 @@ class MobileNetV2(nn.Module):
 
 
 def mobilenet_v2(pretrained=False, progress=True, num_classes=1000):
-    """
-    Constructs a MobileNetV2 architecture from
+    """Constructs a MobileNetV2 architecture from
     `"MobileNetV2: Inverted Residuals and Linear Bottlenecks" <https://arxiv.org/abs/1801.04381>`_.
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr

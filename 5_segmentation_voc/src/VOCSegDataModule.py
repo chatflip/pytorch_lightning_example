@@ -1,7 +1,7 @@
 import os
 
-import cv2
 import albumentations as A
+import cv2
 import hydra
 import pytorch_lightning as L
 import torch
@@ -60,7 +60,12 @@ class VOCSegDataModule(L.LightningDataModule):
             [
                 A.HorizontalFlip(p=0.5),
                 A.ShiftScaleRotate(
-                    scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=1,border_mode=cv2.BORDER_CONSTANT, value=0
+                    scale_limit=0.5,
+                    rotate_limit=0,
+                    shift_limit=0.1,
+                    p=1,
+                    border_mode=cv2.BORDER_CONSTANT,
+                    value=0,
                 ),
                 A.PadIfNeeded(
                     min_height=self.args.arch.image_height,

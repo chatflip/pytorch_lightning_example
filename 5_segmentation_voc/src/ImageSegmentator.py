@@ -50,9 +50,12 @@ class ImageSegmentator(L.LightningModule):
 
     def on_validation_epoch_end(self):
         # TODO: drop_last分のbatchsizeの考慮されてないから厳密ではない
-        for key in  self.validation_step_outputs[0].keys():
+        for key in self.validation_step_outputs[0].keys():
             # validation_stepのdictのkeyごとに集計
-            results = [self.validation_step_outputs[i][key] for i in range(len(self.validation_step_outputs))]
+            results = [
+                self.validation_step_outputs[i][key]
+                for i in range(len(self.validation_step_outputs))
+            ]
             self.log(f"val_{key}", float(sum(results) / len(results)))
 
     def test_step(self, batch, batch_idx):
