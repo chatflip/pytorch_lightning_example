@@ -13,4 +13,15 @@
 
 ```bash
 poetry install
+pre-commit install
+```
+
+## Usage
+
+### formatter, linter, type checker
+
+```bash
+ruff format
+ruff check . --fix
+mypy .
 ```
