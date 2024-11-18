@@ -45,6 +45,7 @@ class VOC2012Downloader:
 
     def decompress(self):
         filepath = os.path.join(self.root_dir, self._COMPRESSED_FILE)
+        filepath = os.path.abspath(filepath)
         with tarfile.open(filepath, "r:*") as tr:
             tr.extractall(path=os.path.join(self.root_dir, ""))
         os.remove(filepath)
