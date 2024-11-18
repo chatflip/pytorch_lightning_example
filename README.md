@@ -5,8 +5,7 @@
 ## Requirement
 
 - Ubuntu
-- pyenv
-- poetry >= 1.2
+- Poetry >= 1.6
 
 ## Installation
 
