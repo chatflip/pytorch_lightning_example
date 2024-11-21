@@ -6,8 +6,9 @@ import hydra
 import pytorch_lightning as L
 import torch
 from albumentations.pytorch import ToTensorV2
-from VOC2012Downloader import VOC2012Downloader
-from VOCSegDataset import VOCSegDataset
+
+from .VOC2012Downloader import VOC2012Downloader
+from .VOCSegDataset import VOCSegDataset
 
 
 class VOCSegDataModule(L.LightningDataModule):

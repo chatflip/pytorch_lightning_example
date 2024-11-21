@@ -9,7 +9,8 @@ from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from pytorch_lightning.loggers import MLFlowLogger
 from segmentation_models_pytorch import utils as smp_utils
 from utils import ElapsedTimePrinter
-from VOCSegDataModule import VOCSegDataModule
+
+from .VOCSegDataModule import VOCSegDataModule
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")

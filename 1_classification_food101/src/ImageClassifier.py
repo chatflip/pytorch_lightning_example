@@ -1,6 +1,7 @@
 import pytorch_lightning as L
 import torch.optim as optim
-from utils import accuracy
+
+from .utils import accuracy
 
 
 class ImageClassifier(L.LightningModule):

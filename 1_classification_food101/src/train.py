@@ -6,14 +6,15 @@ import pytorch_lightning as L
 import timm
 import torch
 import torch.nn as nn
-from ClassificationDataModule import ClassificationDataModule
 from hydra.utils import to_absolute_path
-from ImageClassifier import ImageClassifier
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from pytorch_lightning.loggers import MLFlowLogger
-from utils import ElapsedTimePrinter
+
+from .ClassificationDataModule import ClassificationDataModule
+from .ImageClassifier import ImageClassifier
+from .utils import ElapsedTimePrinter
 
 
 def convert_script_model(args, model):

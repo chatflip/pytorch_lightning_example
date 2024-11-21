@@ -2,10 +2,11 @@ import os
 
 import pytorch_lightning as L
 import torch
-from Food101Dataset import Food101Dataset
-from Food101Downloader import Food101Downloader
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
+
+from .Food101Dataset import Food101Dataset
+from .Food101Downloader import Food101Downloader
 
 
 class ClassificationDataModule(L.LightningDataModule):

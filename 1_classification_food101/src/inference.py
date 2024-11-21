@@ -1,7 +1,8 @@
 import os
 
 import torch
-from utils import ElapsedTimePrinter
+
+from .utils import ElapsedTimePrinter
 
 if __name__ == "__main__":
     weight_root = "weight"

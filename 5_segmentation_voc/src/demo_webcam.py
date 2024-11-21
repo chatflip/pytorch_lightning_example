@@ -8,8 +8,9 @@ import numpy as np
 import segmentation_models_pytorch as smp
 import torch
 from albumentations.pytorch import ToTensorV2
-from ImageSegmentator import ImageSegmentator
 from omegaconf import OmegaConf
+
+from .ImageSegmentator import ImageSegmentator
 
 
 def get_pascal_labels():
