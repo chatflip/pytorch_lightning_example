@@ -5,8 +5,8 @@ import torch
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 
-from .Food101Dataset import Food101Dataset
-from .Food101Downloader import Food101Downloader
+from Food101Dataset import Food101Dataset
+from Food101Downloader import Food101Downloader
 
 
 class ClassificationDataModule(L.LightningDataModule):
@@ -23,7 +23,7 @@ class ClassificationDataModule(L.LightningDataModule):
         self.model_std = model_cfg["std"]
 
     def prepare_data(self):
-        Food101Downloader()
+        Food101Downloader().download()
 
     def train_dataloader(self):
         return self.__dataloader(train=True)

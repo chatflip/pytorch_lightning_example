@@ -6,11 +6,10 @@ from torch.utils.data import Dataset
 
 
 class Food101Dataset(Dataset):
-    # 初期化
     def __init__(self, root, phase, transform=None):
-        self.transform = transform  # 画像変形用
-        self.image_paths = []  # 画像のパス格納用
-        self.image_labels = []  # 画像のラベル格納用
+        self.transform = transform
+        self.image_paths = []
+        self.image_labels = []
         image_root = os.path.join(root, "images")
         metadata_root = os.path.join(root, "meta")
         if phase == "train":
@@ -29,14 +28,12 @@ class Food101Dataset(Dataset):
             self.image_labels.extend([i] * len(filenames))
             self.image_paths.extend(image_paths)
 
-    # num_worker数で並列処理される関数
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> tuple[Image.Image, int]:
         image_path = self.image_paths[index]
-        image = Image.open(image_path).convert("RGB")  # 画像をPILで開く
+        image = Image.open(image_path).convert("RGB")
         if self.transform is not None:
-            image = self.transform(image)  # 画像変形適用
-        return image, self.image_labels[index]  # 画像とラベルを返す
+            image = self.transform(image)
+        return image, self.image_labels[index]
 
-    # データセットの画像数宣言(これが無いとエラー)
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.image_paths)

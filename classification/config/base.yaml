@@ -1,5 +1,5 @@
 exp_name: food101
-dataset_root: ./../datasets/food-101
+dataset_root: ./datasets/food-101
 weight_root: weight
 batch_size: 128
 model_name: efficientnet_b0

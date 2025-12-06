@@ -1,0 +1,12 @@
+{
+    "folders": [
+        {
+            "name": "classification",
+            "path": "classification"
+        },
+        {
+            "name": "root",
+            "path": "."
+        }
+    ]
+}

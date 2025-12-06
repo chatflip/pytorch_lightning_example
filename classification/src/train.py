@@ -12,9 +12,9 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from pytorch_lightning.loggers import MLFlowLogger
 
-from .ClassificationDataModule import ClassificationDataModule
-from .ImageClassifier import ImageClassifier
-from .utils import ElapsedTimePrinter
+from ClassificationDataModule import ClassificationDataModule
+from ImageClassifier import ImageClassifier
+from utils import ElapsedTimePrinter
 
 
 def convert_script_model(args, model):

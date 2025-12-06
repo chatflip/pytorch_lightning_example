@@ -5,7 +5,7 @@ import torch
 
 # ログ記録用クラス
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
+    """Computes and stores the average and current value."""
 
     def __init__(self, name, fmt=":f"):
         self.name = name
@@ -48,7 +48,7 @@ class ProgressMeter(object):
 
 # 精度計算用
 def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+    """Computes the accuracy over the k top predictions for the specified values of k."""
     with torch.no_grad():
         maxk = max(topk)
         batch_size = target.size(0)
