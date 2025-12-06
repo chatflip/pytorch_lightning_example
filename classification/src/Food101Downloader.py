@@ -8,29 +8,28 @@ from loguru import logger
 
 
 class Food101Downloader:
-    """Food101 downloader."""
+    """Food101ダウンローダー"""
 
     _TARGET_URL = "http://data.vision.ee.ethz.ch/cvl/food-101.tar.gz"
 
     def __init__(
         self, root_dir: Path = Path("datasets"), remove_compressed: bool = False
     ) -> None:
-        """Initialize Food101 downloader.
+        """Food101ダウンローダーを初期化する
 
         Args:
-            root_dir (Path): Root directory to save the dataset
-            remove_compressed (bool): Remove compressed file after decompression
+            root_dir: データセットを保存するルートディレクトリ。
+            remove_compressed: 解凍後に圧縮ファイルを削除するかどうか。
         """
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)
         self.remove_compressed = remove_compressed
 
     def download(self) -> None:
-        """Download Food101 dataset.
+        """Food101データセットをダウンロードする
 
-        Args:
-            root_dir (Path): Root directory to save the dataset
-            remove_compressed (bool): Remove compressed file after decompression
+        データセットがまだ存在しない場合はダウンロードし、必要に応じて解凍する。
+        オプションで解凍後に圧縮ファイルを削除する。
         """
         compressed_path = self.root_dir / "food-101.tar.gz"
         decompressed_path = self.root_dir / "food-101"
@@ -48,6 +47,11 @@ class Food101Downloader:
             os.remove(compressed_path)
 
     def _download_food101(self, filename: Path) -> None:
+        """ターゲットURLからFood101データセットをダウンロードする
+
+        Args:
+            filename: ダウンロードしたファイルを保存するパス。
+        """
         logger.info(f"Downloading: {self._TARGET_URL}")
         try:
             urllib.request.urlretrieve(
@@ -59,23 +63,23 @@ class Food101Downloader:
             logger.error(f"Failed to download Food101: {err}")
 
     def _decompress_tarfile(self, compressed_path: Path, extract_to: Path) -> None:
-        """Decompress tarfile.
+        """tarファイルを解凍する
 
         Args:
-            compressed_path (Path): Compressed path
-            extract_to (Path): Directory to extract tar archive to
+            compressed_path: 圧縮ファイルのパス。
+            extract_to: tarアーカイブを展開するディレクトリ。
         """
         with tarfile.open(compressed_path, "r:gz") as tr:
             tr.extractall(path=extract_to, filter="data")
 
     @staticmethod
     def _progress_callback(block_count: int, block_size: int, total_size: int) -> None:
-        """Download progress callback.
+        """ダウンロード進捗コールバック
 
         Args:
-            block_count (int): Block count
-            block_size (int): Block size
-            total_size (int): Total size
+            block_count: これまでにダウンロードしたブロック数。
+            block_size: 各ブロックのサイズ（バイト）。
+            total_size: ファイルの合計サイズ（バイト）。
         """
         percentage = min(int(100.0 * block_count * block_size / total_size), 100)
         bar = "[{}>{}]".format("=" * (percentage // 4), " " * (25 - percentage // 4))

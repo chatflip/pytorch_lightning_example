@@ -76,7 +76,11 @@ exclude = [
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
 select = ["C", "E", "F", "I", "W", "D"]
-ignore = ["D100"]
+ignore = [
+    "D100",  # Missing docstring in public module
+    "D400",  # First line should end with a period
+    "D415"  # First line should end with a period, question mark, or exclamation point
+]
 
 extend-select = []
 

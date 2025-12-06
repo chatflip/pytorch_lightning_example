@@ -1,15 +1,34 @@
 import json
 import os
+from typing import Callable
 
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
 
 class Food101Dataset(Dataset):
-    def __init__(self, root, phase, transform=None):
+    """Food101分類データセット用のDatasetクラス
+
+    このデータセットはFood101データセット構造から画像とラベルを読み込む。
+    """
+
+    def __init__(
+        self,
+        root: str,
+        phase: str,
+        transform: Callable[[Image.Image], torch.Tensor] | None = None,
+    ) -> None:
+        """Food101Datasetを初期化する
+
+        Args:
+            root: 'images'と'meta'サブディレクトリを含むルートディレクトリパス。
+            phase: データセットのフェーズ。'train'または'val'/'test'。
+            transform: 画像に適用するオプションの変換。
+        """
         self.transform = transform
-        self.image_paths = []
-        self.image_labels = []
+        self.image_paths: list[str] = []
+        self.image_labels: list[int] = []
         image_root = os.path.join(root, "images")
         metadata_root = os.path.join(root, "meta")
         if phase == "train":
@@ -28,12 +47,31 @@ class Food101Dataset(Dataset):
             self.image_labels.extend([i] * len(filenames))
             self.image_paths.extend(image_paths)
 
-    def __getitem__(self, index: int) -> tuple[Image.Image, int]:
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, int]:
+        """データセットからサンプルを取得する
+
+        Args:
+            index: 取得するサンプルのインデックス。
+
+        Returns:
+            変換された画像とそのラベルを含むタプル。
+        """
         image_path = self.image_paths[index]
         image = Image.open(image_path).convert("RGB")
         if self.transform is not None:
             image = self.transform(image)
+            assert isinstance(image, torch.Tensor), "Transform must return torch.Tensor"
+        else:
+            # transformがNoneの場合はToTensorを適用
+            from torchvision import transforms
+
+            image = transforms.ToTensor()(image)
         return image, self.image_labels[index]
 
     def __len__(self) -> int:
+        """データセットのサイズを返す
+
+        Returns:
+            データセット内のサンプル数。
+        """
         return len(self.image_paths)

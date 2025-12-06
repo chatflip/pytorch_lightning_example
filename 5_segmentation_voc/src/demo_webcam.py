@@ -8,12 +8,17 @@ import numpy as np
 import segmentation_models_pytorch as smp
 import torch
 from albumentations.pytorch import ToTensorV2
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from .ImageSegmentator import ImageSegmentator
 
 
-def get_pascal_labels():
+def get_pascal_labels() -> np.ndarray:
+    """セグメンテーションクラス用のPASCAL VOCカラーマップを取得する
+
+    Returns:
+        各クラスのBGR色値を含む形状(num_classes, 3)のNumPy配列。
+    """
     VOC_COLOR_MAP = [
         [0, 0, 0],
         [128, 0, 0],
@@ -42,7 +47,15 @@ def get_pascal_labels():
     return color_map
 
 
-def get_transform(args):
+def get_transform(args: DictConfig) -> A.Compose:
+    """推論用の画像変換パイプラインを取得する
+
+    Args:
+        args: arch設定を含む設定辞書。
+
+    Returns:
+        リサイズ、正規化、テンソル変換を含むAlbumentations Composeオブジェクト。
+    """
     transform = A.Compose(
         [
             A.Resize(args.arch.image_height, args.arch.image_width),
@@ -57,18 +70,49 @@ def get_transform(args):
     return transform
 
 
-def preprocess_image(image, transform):
+def preprocess_image(
+    image: np.ndarray, transform: A.Compose
+) -> torch.Tensor:
+    """モデル推論用に画像を前処理する
+
+    Args:
+        image: BGR形式の入力画像。
+        transform: Albumentations変換パイプライン。
+
+    Returns:
+        バッチ次元を含む前処理済み画像テンソル。
+    """
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     tensor = transform(image=image)["image"]
     return tensor.unsqueeze(0)
 
 
-def decode_result(result):
+def decode_result(result: torch.Tensor) -> np.ndarray:
+    """モデル出力をクラスインデックスにデコードする
+
+    Args:
+        result: 形状(batch, num_classes, height, width)のモデル出力テンソル。
+
+    Returns:
+        形状(height, width)のクラスインデックスのNumPy配列。
+    """
     index = result.argmax(0).squeeze(0)
     return index.cpu().numpy()
 
 
-def make_overlay(frame, color_map, index):
+def make_overlay(
+    frame: np.ndarray, color_map: np.ndarray, index: np.ndarray
+) -> np.ndarray:
+    """元のフレーム上にセグメンテーションのオーバーレイ可視化を作成する
+
+    Args:
+        frame: 元のビデオフレーム。
+        color_map: 可視化用のカラーマップ配列。
+        index: セグメンテーション結果からのクラスインデックス配列。
+
+    Returns:
+        元のフレームとセグメンテーション色を組み合わせたオーバーレイ画像。
+    """
     height, width = frame.shape[:2]
     seg_image = color_map[index]
     seg_image = cv2.resize(frame, (width, height), cv2.INTER_AREA)
@@ -77,7 +121,13 @@ def make_overlay(frame, color_map, index):
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
-def main(args):
+def main(args: DictConfig) -> None:
+    """リアルタイムウェブカメラセグメンテーションデモ用のメイン関数
+
+    Args:
+        args: モデル設定、アーキテクチャパラメータなどを含む
+            Hydraからの設定辞書。
+    """
     print(OmegaConf.to_yaml(args))
     cwd = hydra.utils.get_original_cwd()
     model = getattr(smp, args.arch.decoder)(

@@ -15,6 +15,12 @@ from .VOCSegDataModule import VOCSegDataModule
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
 def main(args: DictConfig) -> None:
+    """VOCセグメンテーション用のメイン訓練関数
+
+    Args:
+        args: モデルアーキテクチャ、訓練パラメータ、データセット設定などを
+            含むHydraからの設定辞書。
+    """
     print(OmegaConf.to_yaml(args))
     L.seed_everything(args.seed)
 

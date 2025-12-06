@@ -1,3 +1,5 @@
+"""Benchmark script for comparing float32 and int8 quantized models."""
+
 import os
 
 import torch

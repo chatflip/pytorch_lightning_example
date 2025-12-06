@@ -17,7 +17,13 @@ from ImageClassifier import ImageClassifier
 from utils import ElapsedTimePrinter
 
 
-def convert_script_model(args, model):
+def convert_script_model(args: DictConfig, model: nn.Module) -> None:
+    """モデルをTorchScript形式に変換して保存する
+
+    Args:
+        args: weight_root、exp_name、model_nameを含む設定引数。
+        model: 変換するニューラルネットワークモデル。
+    """
     model_path = os.path.join(args.weight_root, f"{args.exp_name}_{args.model_name}.pt")
     model.eval()
     script_model = torch.jit.script(model)
@@ -26,6 +32,11 @@ def convert_script_model(args, model):
 
 @hydra.main(version_base=None, config_path="../config", config_name="base")
 def main(args: DictConfig) -> None:
+    """メイン関数
+
+    Args:
+        args: 設定引数。
+    """
     print(OmegaConf.to_yaml(args))
     L.seed_everything(args.seed)
 
