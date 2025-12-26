@@ -1,0 +1,12 @@
+# AdamW オプティマイザー設定
+optimizer:
+  type: AdamW
+  lr: 0.001
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+
+scheduler:
+  type: CosineAnnealingLR
+  T_max: null  # null = max_epochsを使用
+  eta_min: 0.00001
+

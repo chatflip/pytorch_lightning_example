@@ -1,0 +1,15 @@
+# 共通デフォルト設定
+seed: 42
+output_dir: "./outputs"
+exp_name: "default"
+
+data:
+  num_workers: 8
+  pin_memory: true
+
+logger:
+  type: "mlflow"
+  experiment_name: "classification"
+  log_model: true
+  tracking_uri: null  # null = ローカル
+

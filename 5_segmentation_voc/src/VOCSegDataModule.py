@@ -6,30 +6,69 @@ import hydra
 import pytorch_lightning as L
 import torch
 from albumentations.pytorch import ToTensorV2
+from omegaconf import DictConfig
+from torch.utils.data import DataLoader
 
 from .VOC2012Downloader import VOC2012Downloader
 from .VOCSegDataset import VOCSegDataset
 
 
 class VOCSegDataModule(L.LightningDataModule):
-    def __init__(self, args):
+    """VOCセグメンテーションタスク用のPyTorch Lightning DataModule
+
+    このモジュールはVOC2012セグメンテーションデータセットの
+    データ準備、読み込み、変換を処理する。
+    """
+
+    def __init__(self, args: DictConfig) -> None:
+        """VOCSegDataModuleを初期化する
+
+        Args:
+            args: dataset_root、num_classes、arch設定などを含む設定引数。
+        """
         super().__init__()
         self.args = args
 
-    def prepare_data(self):
+    def prepare_data(self) -> None:
+        """データセットをダウンロードして準備する
+
+        このメソッドは単一のGPU/プロセスからのみ呼び出される。
+        """
         VOC2012Downloader()
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
+        """訓練用データローダーを作成して返す
+
+        Returns:
+            DataLoader: 訓練用データローダー。
+        """
         return self.__dataloader(train=True)
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
+        """検証用データローダーを作成して返す
+
+        Returns:
+            DataLoader: 検証用データローダー。
+        """
         return self.__dataloader(train=False)
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
+        """テスト用データローダーを作成して返す
+
+        Returns:
+            DataLoader: テスト用データローダー。
+        """
         return self.__dataloader(train=False)
 
-    def __dataloader(self, train: bool):
-        """Train/validation loaders."""
+    def __dataloader(self, train: bool) -> DataLoader:
+        """訓練/検証用データローダーを作成する
+
+        Args:
+            train: Trueの場合、訓練用データローダーを作成し、それ以外は検証/テスト用。
+
+        Returns:
+            DataLoader: 指定されたフェーズ用に設定されたデータローダー。
+        """
         cwd = hydra.utils.get_original_cwd()
         if train:
             dataset = VOCSegDataset(
@@ -56,7 +95,13 @@ class VOCSegDataModule(L.LightningDataModule):
         )
 
     @property
-    def train_transforms(self):
+    def train_transforms(self) -> A.Compose:
+        """訓練用データ変換を取得する
+
+        Returns:
+            A.Compose: HorizontalFlip、ShiftScaleRotate、RandomCrop、
+                正規化などの拡張技術を含む訓練用変換の合成。
+        """
         return A.Compose(
             [
                 A.HorizontalFlip(p=0.5),
@@ -114,7 +159,12 @@ class VOCSegDataModule(L.LightningDataModule):
         )
 
     @property
-    def val_transforms(self):
+    def val_transforms(self) -> A.Compose:
+        """検証/テスト用データ変換を取得する
+
+        Returns:
+            A.Compose: Resize、Normalize、ToTensorV2を含む検証用変換の合成。
+        """
         return A.Compose(
             [
                 A.Resize(self.args.arch.image_height, self.args.arch.image_width),

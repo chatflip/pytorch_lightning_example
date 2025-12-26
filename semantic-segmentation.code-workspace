@@ -1,0 +1,12 @@
+{
+    "folders": [
+        {
+            "name": "semantic-segmentation",
+            "path": "semantic-segmentation"
+        },
+        {
+            "name": "root",
+            "path": "."
+        }
+    ]
+}

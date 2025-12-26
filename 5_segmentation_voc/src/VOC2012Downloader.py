@@ -1,6 +1,7 @@
 import os
 import sys
 import tarfile
+import urllib.error
 import urllib.request
 
 import cv2
@@ -10,10 +11,21 @@ import pandas as pd
 
 
 class VOC2012Downloader:
+    """Downloader for VOC2012 segmentation dataset.
+
+    This class handles downloading, decompressing, and preprocessing
+    the VOC2012 dataset for segmentation tasks.
+    """
+
     _BASE_URL = "http://host.robots.ox.ac.uk/pascal/VOC/voc2012"
     _COMPRESSED_FILE = "VOCtrainval_11-May-2012.tar"
 
-    def __init__(self, root_dir="./../datasets"):
+    def __init__(self, root_dir: str = "./../datasets") -> None:
+        """Initialize VOC2012Downloader.
+
+        Args:
+            root_dir: Root directory to save the dataset.
+        """
         try:
             cwd = hydra.utils.get_original_cwd()
             self.root_dir = os.path.join(cwd, root_dir)
@@ -25,7 +37,8 @@ class VOC2012Downloader:
             self.decompress()
             self.make_raw_annotation()
 
-    def download(self):
+    def download(self) -> None:
+        """ターゲットURLからVOC2012データセットをダウンロードする"""
         target_url = os.path.join(self._BASE_URL, self._COMPRESSED_FILE)
         fullpath = os.path.join(self.root_dir, self._COMPRESSED_FILE)
         if os.path.exists(fullpath):
@@ -43,14 +56,20 @@ class VOC2012Downloader:
                 print("ERROR :{}".format(err.code))
                 print(err.reason)
 
-    def decompress(self):
+    def decompress(self) -> None:
+        """ダウンロードしたtarファイルを解凍する"""
         filepath = os.path.join(self.root_dir, self._COMPRESSED_FILE)
         filepath = os.path.abspath(filepath)
         with tarfile.open(filepath, "r:*") as tr:
             tr.extractall(path=os.path.join(self.root_dir, ""))
         os.remove(filepath)
 
-    def make_raw_annotation(self):
+    def make_raw_annotation(self) -> None:
+        """カラーコード化されたセグメンテーションマスクを生のクラスインデックスに変換する
+
+        このメソッドはカラーコード化されたセグメンテーション画像を読み込み、
+        クラスインデックスを含む単一チャネル画像に変換する。
+        """
         print("make_raw_annotation")
         color_map = self.get_pascal_labels()
         num_class = color_map.shape[0]
@@ -67,23 +86,35 @@ class VOC2012Downloader:
             dst_path = f"{self.voc12_root}/SegmentationRaw/{image_list.values[0]}.png"
             annotation_color = cv2.imread(src_path)
             raw_annotation = np.zeros(annotation_color.shape[:2])
-            for idx in range(num_class):
-                valid = np.all(annotation_color == color_map[idx], axis=-1)
+            for class_idx in range(num_class):
+                valid = np.all(annotation_color == color_map[class_idx], axis=-1)
                 rs, cs = valid.nonzero()
-                raw_annotation[rs, cs] = idx
+                raw_annotation[rs, cs] = class_idx
             raw_annotation = np.array(raw_annotation, dtype=np.uint8)
             cv2.imwrite(dst_path, raw_annotation)
 
     @staticmethod
-    def progress(block_count, block_size, total_size):
+    def progress(block_count: int, block_size: int, total_size: int) -> None:
+        """ダウンロード進捗コールバック
+
+        Args:
+            block_count: これまでにダウンロードしたブロック数。
+            block_size: 各ブロックのサイズ（バイト）。
+            total_size: ファイルの合計サイズ（バイト）。
+        """
         percentage = min(int(100.0 * block_count * block_size / total_size), 100)
         bar = "[{}>{}]".format("=" * (percentage // 4), " " * (25 - percentage // 4))
         sys.stdout.write("{} {:3d}%\r".format(bar, percentage))
         sys.stdout.flush()
 
     @staticmethod
-    def get_pascal_labels():
-        VOC_COLOR_MAP = [
+    def get_pascal_labels() -> np.ndarray:
+        """セグメンテーションクラス用のPASCAL VOCカラーマップを取得する
+
+        Returns:
+            各クラスのBGR色値を含む形状(num_classes, 3)のNumPy配列。
+        """
+        VOC_COLOR_MAP: list[list[int]] = [
             [0, 0, 0],
             [128, 0, 0],
             [0, 128, 0],

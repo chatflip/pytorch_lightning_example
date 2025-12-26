@@ -1,0 +1,29 @@
+# 基本的なオーギュメンテーション設定
+augmentation:
+  train:
+    ops:
+      - type: Resize
+        height: 256
+        width: 256
+      - type: RandomCrop
+        height: 224
+        width: 224
+      - type: HorizontalFlip
+        p: 0.5
+      - type: Normalize
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+      - type: ToTensorV2
+  val:
+    ops:
+      - type: Resize
+        height: 256
+        width: 256
+      - type: CenterCrop
+        height: 224
+        width: 224
+      - type: Normalize
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+      - type: ToTensorV2
+
