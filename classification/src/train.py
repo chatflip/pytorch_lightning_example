@@ -1,5 +1,6 @@
 import os
 import shutil
+from typing import Any, cast
 
 import hydra
 import pytorch_lightning as L
@@ -44,12 +45,13 @@ def main(args: DictConfig) -> None:
         experiment_name="1_classification_food101",
         log_model=True,
     )
-    mlf_logger.log_hyperparams(args)
+    hyperparams = cast(dict[str, Any], OmegaConf.to_container(args, resolve=True))
+    mlf_logger.log_hyperparams(hyperparams)
 
     model = timm.create_model(
         model_name=args.model_name, pretrained=True, num_classes=args.num_classes
     )
-    model_cfg = model.pretrained_cfg
+    model_cfg = cast(dict[str, object], model.pretrained_cfg)
     print(f"model_cfg: {model_cfg}")
     datamodule = ClassificationDataModule(args, model_cfg)
     criterion = nn.CrossEntropyLoss()

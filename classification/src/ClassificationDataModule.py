@@ -21,7 +21,7 @@ class ClassificationDataModule(L.LightningDataModule):
     def __init__(
         self,
         args: DictConfig,
-        model_cfg: dict[str, float | int | list[float] | tuple[int, ...]],
+        model_cfg: dict[str, object],
     ) -> None:
         """ClassificationDataModuleを初期化する
 
