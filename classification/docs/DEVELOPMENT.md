@@ -182,25 +182,3 @@ augmentation:
 uv run mlflow ui --port 5000
 # ブラウザで http://localhost:5000 を開く
 ```
-
-## チェックポイントからの再開
-
-```bash
-# チェックポイントから学習を再開
-uv run python src/train.py -c config/experiments/food101_efficientnet_b0.yaml \
-    --resume outputs/food101_efficientnet_b0/checkpoints/last.ckpt
-```
-
-## テストのみ実行
-
-```bash
-uv run python src/train.py -c config/experiments/food101_efficientnet_b0.yaml \
-    --test-only \
-    --resume outputs/food101_efficientnet_b0/checkpoints/best.ckpt
-```
-
-## 関連ドキュメント
-
-- [CONFIGURATION.md](CONFIGURATION.md) - 設定ファイルの詳細
-- [SPECIFICATION.md](SPECIFICATION.md) - 技術仕様書
-
