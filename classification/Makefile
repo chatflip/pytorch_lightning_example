@@ -1,7 +1,6 @@
 SRC_DIR := src
-TEST_DIR := tests
 
-.PHONY: install lint format test
+.PHONY: install lint format
 
 .DEFAULT_GOAL := help
 
@@ -10,8 +9,7 @@ help:
 	@echo "Targets:"
 	@echo "  install - Install dependencies"
 	@echo "  format - Format code using ruff"
-	@echo "  lint - Lint code using ruff and mypy"
-	@echo "  test - Run tests using pytest"
+	@echo "  lint - Lint code using ruff and ty"
 
 install:
 	@uv sync --all-groups
