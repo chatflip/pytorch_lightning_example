@@ -10,7 +10,7 @@ from typing import Any
 
 import pytorch_lightning as L
 from loguru import logger
-from pytorch_lightning.callbacks import ModelCheckpoint, RichProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.loggers import Logger as PLLogger
 
 from builders import build_logger
@@ -104,7 +104,7 @@ def build_trainer(
 
     # コールバック
     callbacks = [
-        RichProgressBar(),
+        TQDMProgressBar(),
         checkpoint_callback,
     ]
 
