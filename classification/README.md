@@ -23,35 +23,7 @@ YAML継承構造による設定管理を採用した、汎用的な画像分類�
 | ロギング | MLFlow / TensorBoard |
 | パッケージ管理 | uv |
 
-## 📁 ディレクトリ構成
-
-```
-classification/
-├── config/                           # 設定ファイル
-│   ├── _base_/                       # ベース設定（継承元）
-│   │   ├── default.yaml              # 共通デフォルト設定
-│   │   ├── model/                    # モデル設定
-│   │   ├── augmentation/             # オーギュメンテーション設定
-│   │   ├── optimizer/                # オプティマイザー設定
-│   │   └── trainer/                  # トレーナー設定
-│   └── experiments/                  # 実験設定
-├── src/                              # ソースコード
-│   ├── train.py                      # エントリーポイント
-│   ├── config/                       # 設定ローダー
-│   ├── data/                         # データモジュール
-│   ├── models/                       # モデル定義
-│   └── builders/                     # ビルダー
-├── tools/                            # ユーティリティツール
-│   └── datasets/                     # データセット準備ツール
-├── data/                             # データ
-│   ├── raw/                          # ダウンロードした生データ
-│   └── datasets/                     # 整形済みデータセット
-├── outputs/                          # 学習出力（チェックポイント等）
-├── mlruns/                           # MLFlow実験記録
-└── docs/                             # ドキュメント
-```
-
-## 🚀 インストール
+## 🚀 クイックスタート
 
 ### 前提条件
 
@@ -59,78 +31,32 @@ classification/
 - CUDA対応GPU（推奨）
 - [uv](https://docs.astral.sh/uv/) パッケージマネージャ
 
-### セットアップ
+### インストール
 
 ```bash
-# 依存関係のインストール
 make install
 ```
 
-## 📊 使い方
-
-### 1. データセットの準備
-
-Food101データセットを使用する場合：
+### データセットの準備
 
 ```bash
-# データセットのダウンロードと準備
+# Food101データセットのダウンロードと準備
 uv run python tools/datasets/prepare_food101.py
 ```
 
-### 1. 学習の実行
+### 学習の実行
 
 ```bash
 # 設定ファイルを指定して学習
 uv run python src/train.py -c config/experiments/food101_efficientnet_b0.yaml
 ```
 
-### 1. MLFlow UI
+### MLFlow UI
 
 ```bash
-# MLFlow UIを起動
 uv run mlflow ui --port 5000
 # ブラウザで http://localhost:5000 を開く
 ```
-
-## ⚙️ 設定ファイル
-
-### YAML継承の仕組み
-
-`__base__`キーを使用してベース設定を継承し、必要な部分のみオーバーライドできます。
-
-```yaml
-# config/experiments/food101_efficientnet_b0.yaml
-__base__:
-  - ../_base_/default.yaml
-  - ../_base_/model/efficientnet_b0.yaml
-  - ../_base_/augmentation/basic.yaml
-  - ../_base_/optimizer/adamw.yaml
-  - ../_base_/trainer/default.yaml
-
-exp_name: "food101_efficientnet_b0"
-
-data:
-  dataset_root: "./data/datasets/food101"
-  num_classes: 101
-  batch_size: 128
-
-trainer:
-  max_epochs: 50
-```
-
-### 主な設定項目
-
-| 設定カテゴリ | 説明 |
-|--------------|------|
-| `model` | timmのモデル名、事前学習、ドロップアウト率 |
-| `data` | データセットパス、バッチサイズ、ワーカー数 |
-| `augmentation` | train/valのオーギュメンテーションパイプライン |
-| `optimizer` | オプティマイザータイプ、学習率、重み減衰 |
-| `scheduler` | 学習率スケジューラー設定 |
-| `trainer` | エポック数、精度、デバイス設定 |
-| `logger` | ロガータイプ、実験名 |
-
-詳細は [docs/SPECIFICATION.md](docs/SPECIFICATION.md) を参照してください。
 
 ## 📈 出力
 
@@ -144,16 +70,10 @@ outputs/{exp_name}/
 └── config.yaml                        # 使用した設定
 ```
 
-## 📝 開発
+## 📚 ドキュメント
 
-```bash
-# コードフォーマット
-make format
-
-# リント
-make lint
-```
-
-## 📄 ライセンス
-
-MIT License
+| ドキュメント | 説明 |
+|-------------|------|
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | 設定ファイルの詳細ガイド |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 開発者向けガイド |
+| [docs/SPECIFICATION.md](docs/SPECIFICATION.md) | 技術仕様書 |
