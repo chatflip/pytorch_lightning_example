@@ -69,10 +69,7 @@ def main(args: DictConfig) -> None:
         callbacks=callbacks,
     )
 
-    timer = ElapsedTimePrinter()
-    timer.start()
     trainer.fit(plmodel, datamodule=datamodule)
-    timer.end()
     trainer.test(plmodel, datamodule=datamodule, verbose=True)
 
 

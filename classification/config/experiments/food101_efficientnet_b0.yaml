@@ -10,7 +10,7 @@ exp_name: "food101_efficientnet_b0"
 data:
   dataset_root: "./data/datasets/food101"
   num_classes: 101
-  batch_size: 64
+  batch_size: 128
 
 trainer:
   max_epochs: 50
