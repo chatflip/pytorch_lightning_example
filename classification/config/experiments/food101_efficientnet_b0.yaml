@@ -1,0 +1,22 @@
+# Food-101 EfficientNet-B0 実験設定
+__base__:
+  - ../_base_/default.yaml
+  - ../_base_/model/efficientnet_b0.yaml
+  - ../_base_/augmentation/basic.yaml
+  - ../_base_/optimizer/adamw.yaml
+  - ../_base_/trainer/default.yaml
+
+exp_name: "food101_efficientnet_b0"
+
+data:
+  dataset_root: "./datasets/food-101-imagefolder"
+  num_classes: 101
+  batch_size: 64
+
+trainer:
+  max_epochs: 50
+  precision: "16-mixed"
+
+logger:
+  experiment_name: "food101_classification"
+
