@@ -15,10 +15,6 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "pre-commit>=4.5.0",
-]
-
 lint = [
     "ruff==0.14.4", 
     "ty>=0.0.1a25",
@@ -92,42 +88,7 @@ unfixable = ["B"]
 convention = "google"
 
 [tool.ty.src]
-include = ["src", "tests"]
+include = ["src"]
 
 [tool.ty.terminal]
 error-on-warning = true
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = [
-    "--cov=./",
-    "--cov-report=xml",
-    "--verbose",
-]
-
-[tool.coverage.run]
-branch = true
-source = ["src/"]
-omit = [
-    "config.py",
-    "config-3.py",
-]
-
-[tool.coverage.report]
-show_missing = true
-fail_under = 80
-omit = ["tests/*"]
-
-[tool.coverage.html]
-directory = "htmlcov"
-
-[tool.markdown.lint]
-default = true
-MD004 = false    # ul-style - Unordered list style
-MD007.indent = 2 # ul-indent - Unordered list indentation
-MD013 = false    # line-length - Line length
-MD029 = false    # ol-prefix - Ordered list item prefix
-MD033 = false    # no-inline-html Inline HTML
-MD041 = false    # first-line-heading/first-line-h1
-MD046 = false    # indented-code-blocks
-MD059 = false    # descriptive-link-text
