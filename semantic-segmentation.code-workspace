@@ -8,5 +8,8 @@
             "name": "root",
             "path": "."
         }
-    ]
+    ],
+    "settings": {
+        "terminal.integrated.cwd": "${workspaceFolder:semantic-segmentation}"
+    }
 }
