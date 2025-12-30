@@ -12,7 +12,9 @@ from config import (
     ConfigValidationError,
     load_config,
     save_config,
-    validate_training_configs,
+    validate_checkpoint_from_config,
+    validate_progress_bar_from_config,
+    validate_trainer_from_config,
 )
 from data import ClassificationDataModule
 from models import ImageClassifier
@@ -55,17 +57,23 @@ def build_trainer(
     Raises:
         ConfigValidationError: 設定のバリデーションに失敗した場合
     """
-    checkpoint_cfg, progress_bar_cfg, trainer_cfg = validate_training_configs(config)
+    checkpoint_cfg = validate_checkpoint_from_config(config)
+    try:
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=exp_dir / "checkpoints",
+            filename="best",
+            monitor=checkpoint_cfg.monitor,
+            mode=checkpoint_cfg.mode,
+            save_top_k=checkpoint_cfg.save_top_k,
+            save_last=checkpoint_cfg.save_last,
+        )
+    except Exception as e:
+        raise ConfigValidationError(
+            section="checkpoint",
+            errors=[{"loc": [], "msg": str(e), "input": "N/A"}],
+        ) from e
 
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=exp_dir / "checkpoints",
-        filename="best",
-        monitor=checkpoint_cfg.monitor,
-        mode=checkpoint_cfg.mode,
-        save_top_k=checkpoint_cfg.save_top_k,
-        save_last=checkpoint_cfg.save_last,
-    )
-
+    progress_bar_cfg = validate_progress_bar_from_config(config)
     try:
         tqdm_callback = TQDMProgressBar(refresh_rate=progress_bar_cfg.refresh_rate)
     except Exception as e:
@@ -80,15 +88,14 @@ def build_trainer(
             ],
         ) from e
 
-    callbacks = [
-        tqdm_callback,
-        checkpoint_callback,
-    ]
-
+    trainer_cfg = validate_trainer_from_config(config)
     try:
         trainer = L.Trainer(
             logger=pl_logger,
-            callbacks=callbacks,
+            callbacks=[
+                tqdm_callback,
+                checkpoint_callback,
+            ],
             max_epochs=trainer_cfg.max_epochs,
             accelerator=trainer_cfg.accelerator,
             devices=trainer_cfg.devices,

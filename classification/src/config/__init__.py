@@ -7,9 +7,11 @@ from config.schema import (
     ProgressBarConfig,
     TrainerConfig,
     validate_checkpoint_config,
+    validate_checkpoint_from_config,
     validate_progress_bar_config,
+    validate_progress_bar_from_config,
     validate_trainer_config,
-    validate_training_configs,
+    validate_trainer_from_config,
 )
 
 __all__ = [
@@ -21,7 +23,9 @@ __all__ = [
     "TrainerConfig",
     "ConfigValidationError",
     "validate_checkpoint_config",
+    "validate_checkpoint_from_config",
     "validate_progress_bar_config",
+    "validate_progress_bar_from_config",
     "validate_trainer_config",
-    "validate_training_configs",
+    "validate_trainer_from_config",
 ]

@@ -227,22 +227,46 @@ def validate_trainer_config(config: dict) -> TrainerConfig:
         ) from e
 
 
-def validate_training_configs(
-    config: dict,
-) -> tuple[CheckpointConfig, ProgressBarConfig, TrainerConfig]:
-    """トレーニング関連の全設定をバリデーション.
+def validate_checkpoint_from_config(config: dict) -> CheckpointConfig:
+    """全体設定辞書からチェックポイント設定をバリデーション.
 
     Args:
         config: 全体の設定辞書
 
     Returns:
-        (CheckpointConfig, ProgressBarConfig, TrainerConfig) のタプル
+        バリデーション済みのCheckpointConfig
 
     Raises:
         ConfigValidationError: バリデーションエラーが発生した場合
     """
-    checkpoint_config = validate_checkpoint_config(config.get("checkpoint", {}))
-    progress_bar_config = validate_progress_bar_config(config.get("progress_bar", {}))
-    trainer_config = validate_trainer_config(config.get("trainer", {}))
+    return validate_checkpoint_config(config.get("checkpoint", {}))
 
-    return checkpoint_config, progress_bar_config, trainer_config
+
+def validate_progress_bar_from_config(config: dict) -> ProgressBarConfig:
+    """全体設定辞書からプログレスバー設定をバリデーション.
+
+    Args:
+        config: 全体の設定辞書
+
+    Returns:
+        バリデーション済みのProgressBarConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    return validate_progress_bar_config(config.get("progress_bar", {}))
+
+
+def validate_trainer_from_config(config: dict) -> TrainerConfig:
+    """全体設定辞書からトレーナー設定をバリデーション.
+
+    Args:
+        config: 全体の設定辞書
+
+    Returns:
+        バリデーション済みのTrainerConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    return validate_trainer_config(config.get("trainer", {}))
