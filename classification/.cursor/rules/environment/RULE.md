@@ -12,8 +12,7 @@ Use `uv` exclusively. Never use `pip`, `poetry`, or `pipenv`.
 
 - Install: `uv add <package>`
 - Dev dependency: `uv add --dev <package>`
-- Sync: `make install`
-- Python version: `uv python pin 3.12`
+- Sync: @scripts/install.sh
 
 ## Prohibited
 
