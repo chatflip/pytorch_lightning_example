@@ -204,8 +204,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Run validation after training",
     )
-    args, unknown = parser.parse_known_args()
-    args.overrides = unknown
+    args = parser.parse_args()
 
     run_training(
         config_path=args.config,

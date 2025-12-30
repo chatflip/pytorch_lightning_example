@@ -536,8 +536,7 @@ if __name__ == "__main__":
         default=None,
         help="Output directory for results (default: {exp_dir}/validation)",
     )
-    args, unknown = parser.parse_known_args()
-    args.overrides = unknown
+    args = parser.parse_args()
 
     run_validation(
         config_path=args.config,

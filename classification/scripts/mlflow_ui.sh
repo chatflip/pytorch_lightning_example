@@ -2,6 +2,8 @@
 set -eu
 
 default_tracking_uri="sqlite:///mlflow.db"
+port=5000
 
 uv run mlflow ui \
-  --backend-store-uri $default_tracking_uri
+  --backend-store-uri $default_tracking_uri \
+  --port $port

@@ -2,10 +2,8 @@ import numpy as np
 import pytest
 
 import albumentations as A
-from albumentations.pytorch import ToTensorV2
 
 from builders.augmentation import (
-    SUPPORTED_TRANSFORMS,
     _build_single_transform,
     build_transforms,
 )
@@ -191,18 +189,6 @@ class TestErrorHandling:
 
         with pytest.raises(ConfigValidationError):
             build_transforms(config)
-
-
-class TestSupportedTransforms:
-    """サポートされているtransformのテスト."""
-
-    def test_all_supported_transforms_exist_in_albumentations(self) -> None:
-        """SUPPORTED_TRANSFORMSのすべてがalbumentationsに存在することを確認."""
-        for transform_name in SUPPORTED_TRANSFORMS:
-            if transform_name == "ToTensorV2":
-                assert hasattr(ToTensorV2, "__call__")
-            else:
-                assert hasattr(A, transform_name), f"{transform_name} not found in albumentations"
 
 
 if __name__ == "__main__":

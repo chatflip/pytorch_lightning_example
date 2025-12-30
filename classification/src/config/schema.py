@@ -385,21 +385,6 @@ def validate_logger_config(config: dict) -> LoggerConfig:
         ) from e
 
 
-def validate_logger_from_config(config: dict) -> LoggerConfig:
-    """全体設定辞書からロガー設定をバリデーション.
-
-    Args:
-        config: 全体の設定辞書
-
-    Returns:
-        バリデーション済みのLoggerConfig
-
-    Raises:
-        ConfigValidationError: バリデーションエラーが発生した場合
-    """
-    return validate_logger_config(config.get("logger", {}))
-
-
 def validate_transform_config(config: dict) -> TransformConfig:
     """トランスフォーム設定をバリデーション.
 
@@ -421,21 +406,3 @@ def validate_transform_config(config: dict) -> TransformConfig:
             "augmentation",
             [{"loc": [], "msg": str(e), "input": config}],
         ) from e
-
-
-def validate_transform_from_config(
-    config: dict, section: str = "train_augmentation"
-) -> TransformConfig:
-    """全体設定辞書からトランスフォーム設定をバリデーション.
-
-    Args:
-        config: 全体の設定辞書
-        section: 設定セクション名（train_augmentation または val_augmentation）
-
-    Returns:
-        バリデーション済みのTransformConfig
-
-    Raises:
-        ConfigValidationError: バリデーションエラーが発生した場合
-    """
-    return validate_transform_config(config.get(section, {}))

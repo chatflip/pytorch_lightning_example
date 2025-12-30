@@ -47,14 +47,25 @@ uv run python tools/datasets/prepare_food101.py
 ### 学習の実行
 
 ```bash
-# 設定ファイルを指定して学習
-uv run python src/train.py -c config/experiments/food101_efficientnet_b0.yaml
+# トレーニングのみ
+uv run python src/train.py \
+  --config config/experiments/food101_efficientnet_b0.yaml
+
+# トレーニング + 検証 (連続実行)
+uv run python src/train.py \
+  --config config/experiments/food101_efficientnet_b0.yaml \
+  --validate
+
+# 検証のみ (既存のrun_idを指定)
+uv run python src/validate.py \
+  --config config/experiments/food101_efficientnet_b0.yaml \
+  --run-id <RUN_ID>
 ```
 
 ### MLFlow UI
 
 ```bash
-uv run mlflow ui --port 5000
+bash scripts/mlflow_ui.sh
 # ブラウザで http://localhost:5000 を開く
 ```
 
