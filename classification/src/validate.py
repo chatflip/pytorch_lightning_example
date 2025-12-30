@@ -56,10 +56,10 @@ def find_best_checkpoint(checkpoint_dir: Path) -> Path:
     if best_ckpt.exists():
         return best_ckpt
 
-    # なければlast.ckptを使用
-    last_ckpt = checkpoint_dir / "last.ckpt"
-    if last_ckpt.exists():
-        return last_ckpt
+    # なければlatest.ckptを使用
+    latest_ckpt = checkpoint_dir / "latest.ckpt"
+    if latest_ckpt.exists():
+        return latest_ckpt
 
     raise FileNotFoundError(f"No checkpoints found in {checkpoint_dir}")
 
@@ -136,15 +136,17 @@ def validate(
                 pred_label = pred_labels[i].item()
                 pred_prob = pred_probs[i].item()
 
-                predictions.append({
-                    "image_path": str(img_path),
-                    "ground_truth": classes[gt_label],
-                    "prediction": classes[pred_label],
-                    "gt_label_idx": gt_label,
-                    "pred_label_idx": pred_label,
-                    "confidence": pred_prob,
-                    "correct": gt_label == pred_label,
-                })
+                predictions.append(
+                    {
+                        "image_path": str(img_path),
+                        "ground_truth": classes[gt_label],
+                        "prediction": classes[pred_label],
+                        "gt_label_idx": gt_label,
+                        "pred_label_idx": pred_label,
+                        "confidence": pred_prob,
+                        "correct": gt_label == pred_label,
+                    }
+                )
                 sample_idx += 1
 
     # メトリクスを計算
@@ -199,10 +201,10 @@ def save_metrics(metrics: dict[str, float], output_path: Path) -> None:
         f.write("=== Validation Metrics ===\n\n")
         f.write(f"Total Samples: {metrics['total_samples']}\n")
         f.write(f"Loss: {metrics['loss']:.4f}\n")
-        top1 = metrics['top1_accuracy']
-        top5 = metrics['top5_accuracy']
-        f.write(f"Top-1 Accuracy: {top1:.4f} ({top1*100:.2f}%)\n")
-        f.write(f"Top-5 Accuracy: {top5:.4f} ({top5*100:.2f}%)\n")
+        top1 = metrics["top1_accuracy"]
+        top5 = metrics["top5_accuracy"]
+        f.write(f"Top-1 Accuracy: {top1:.4f} ({top1 * 100:.2f}%)\n")
+        f.write(f"Top-5 Accuracy: {top5:.4f} ({top5 * 100:.2f}%)\n")
 
     logger.info(f"Metrics saved to: {output_path}")
 
@@ -309,9 +311,7 @@ def main() -> None:
 
     # モデルを読み込み
     logger.info(f"Loading model from checkpoint: {checkpoint_path}")
-    model = ImageClassifier.load_from_checkpoint(
-        checkpoint_path, config=config
-    )
+    model = ImageClassifier.load_from_checkpoint(checkpoint_path, config=config)
 
     # クラス情報を取得
     num_classes = config.get("data", {}).get("num_classes", datamodule.num_classes)
@@ -332,8 +332,8 @@ def main() -> None:
     logger.info("Validation Results:")
     logger.info(f"  Total Samples: {metrics['total_samples']}")
     logger.info(f"  Loss: {metrics['loss']:.4f}")
-    logger.info(f"  Top-1 Accuracy: {metrics['top1_accuracy']*100:.2f}%")
-    logger.info(f"  Top-5 Accuracy: {metrics['top5_accuracy']*100:.2f}%")
+    logger.info(f"  Top-1 Accuracy: {metrics['top1_accuracy'] * 100:.2f}%")
+    logger.info(f"  Top-5 Accuracy: {metrics['top5_accuracy'] * 100:.2f}%")
     logger.info("=" * 50)
 
     # 正解・不正解の統計
@@ -354,4 +354,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -1,10 +1,4 @@
-"""画像分類学習のエントリーポイント.
-
-YAML設定ファイルを使用して学習を実行する。
-"""
-
 import argparse
-import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -90,26 +84,28 @@ def build_trainer(
     Returns:
         Trainerオブジェクト
     """
-    trainer_config = config.get("trainer", {})
     checkpoint_config = config.get("checkpoint", {})
+    progress_bar_config = config.get("progress_bar", {})
+    trainer_config = config.get("trainer", {})
 
-    # チェックポイントコールバック
     checkpoint_callback = ModelCheckpoint(
         dirpath=exp_dir / "checkpoints",
-        filename="{epoch:02d}-{val_loss:.4f}",
+        filename="best",
         monitor=checkpoint_config.get("monitor", "val_loss"),
         mode=checkpoint_config.get("mode", "min"),
-        save_top_k=checkpoint_config.get("save_top_k", 3),
+        save_top_k=checkpoint_config.get("save_top_k", 1),
         save_last=checkpoint_config.get("save_last", True),
     )
 
-    # コールバック
+    tqdm_callback = TQDMProgressBar(
+        refresh_rate=progress_bar_config.get("refresh_rate", 10)
+    )
+
     callbacks = [
-        TQDMProgressBar(),
+        tqdm_callback,
         checkpoint_callback,
     ]
 
-    # Trainer
     trainer = L.Trainer(
         logger=pl_logger,
         callbacks=callbacks,
@@ -191,14 +187,6 @@ def main() -> None:
             datamodule=datamodule,
             ckpt_path=args.resume,
         )
-
-        # 最良のチェックポイントをbest.ckptとして保存
-        checkpoint_callback = trainer.checkpoint_callback
-        if checkpoint_callback and checkpoint_callback.best_model_path:
-            best_ckpt_path = Path(checkpoint_callback.best_model_path)
-            best_ckpt_dst = best_ckpt_path.parent / "best.ckpt"
-            shutil.copy(best_ckpt_path, best_ckpt_dst)
-            logger.info(f"Best checkpoint saved to: {best_ckpt_dst}")
 
         # テストを実行
         logger.info("Running test...")
