@@ -5,15 +5,14 @@
 ## Requirement
 
 - Ubuntu
-- Poetry >= 1.6
+- [uv](https://docs.astral.sh/uv/)
 
 ## Installation
 
 ### 実行環境導入(仮想環境)
 
 ```bash
-poetry install
-pre-commit install
+make install
 ```
 
 ## Usage
@@ -21,7 +20,6 @@ pre-commit install
 ### formatter, linter, type checker
 
 ```bash
-ruff format
-ruff check . --fix
-mypy .
+make format
+make lint
 ```
