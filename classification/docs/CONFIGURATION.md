@@ -77,6 +77,7 @@ model:
 ```
 
 利用可能なモデル:
+
 - `efficientnet_b0` - 軽量で高精度なモデル
 - `resnet50` - 安定した性能の標準モデル
 - その他、timmでサポートされる全てのモデル
@@ -116,6 +117,7 @@ augmentation:
 ```
 
 **サポートするオーギュメンテーション:**
+
 - **リサイズ系**: Resize, RandomResizedCrop, CenterCrop, RandomCrop
 - **反転・回転**: HorizontalFlip, VerticalFlip, Rotate, RandomRotate90
 - **色変換**: ColorJitter, RandomBrightnessContrast, HueSaturationValue
@@ -139,9 +141,11 @@ scheduler:
 ```
 
 **サポートするオプティマイザー:**
+
 - SGD, Adam, AdamW, RMSprop
 
 **サポートするスケジューラー:**
+
 - StepLR, MultiStepLR, ExponentialLR
 - CosineAnnealingLR, CosineAnnealingWarmRestarts
 - OneCycleLR
@@ -212,4 +216,3 @@ uv run python src/train.py -c config/experiments/food101_efficientnet_b0.yaml \
 ## 詳細仕様
 
 より詳細な技術仕様については、[SPECIFICATION.md](SPECIFICATION.md) を参照してください。
-

@@ -18,7 +18,7 @@ timmモデルとalbumentationsを使用し、すべての設定をYAMLで管理�
 
 ## 3. ディレクトリ構成
 
-```
+```text
 classification/
 ├── config/
 │   ├── _base_/                          # ベース設定（継承元）
@@ -69,7 +69,7 @@ classification/
 ImageFolder形式を採用。データセットルートディレクトリの下に`train`と`val`ディレクトリがあり、
 その中にクラス名のサブディレクトリがあり、画像が配置される。
 
-```
+```text
 dataset_root/
 ├── train/
 │   ├── class_a/
@@ -106,6 +106,7 @@ data:
 ```
 
 継承のルール:
+
 1. `__base__` に指定された順番でベースファイルを読み込む
 2. 後から読み込んだ設定が前の設定を上書きする
 3. 実験設定ファイル自体の設定が最優先される
@@ -184,6 +185,7 @@ augmentation:
 ```
 
 サポートするオーギュメンテーション（albumentationsのクラス）:
+
 - **リサイズ系**: Resize, RandomResizedCrop, CenterCrop, RandomCrop, Crop
 - **反転・回転**: HorizontalFlip, VerticalFlip, Rotate, RandomRotate90
 - **色変換**: ColorJitter, RandomBrightnessContrast, HueSaturationValue, RGBShift
@@ -207,10 +209,13 @@ scheduler:
 ```
 
 サポートするオプティマイザー:
+
 - SGD, Adam, AdamW, RMSprop
 
 サポートするスケジューラー:
-- StepLR, MultiStepLR, ExponentialLR, CosineAnnealingLR, CosineAnnealingWarmRestarts, OneCycleLR
+
+- StepLR, MultiStepLR, ExponentialLR, CosineAnnealingLR
+- CosineAnnealingWarmRestarts, OneCycleLR
 
 #### 5.2.5 トレーナー設定 (`_base_/trainer/*.yaml`)
 
@@ -284,6 +289,7 @@ config = load_config("config/experiments/food101_efficientnet_b0.yaml")
 ```
 
 機能:
+
 - `__base__` キーの解析と継承処理
 - 辞書の再帰的マージ
 - 相対パスの解決
@@ -325,6 +331,7 @@ logger = build_logger(config["logger"])
 ```
 
 サポート:
+
 - MLFlowLogger
 - TensorBoardLogger
 - WandbLogger
@@ -343,6 +350,7 @@ dataset = ImageFolderDataset(
 ```
 
 特徴:
+
 - albumentationsトランスフォームを使用
 - クラス名からラベルへの自動マッピング
 - 画像ファイル拡張子のフィルタリング
@@ -358,6 +366,7 @@ datamodule = ClassificationDataModule(config)
 ```
 
 機能:
+
 - train/val/testデータローダーの作成
 - AugmentationBuilderを使用したトランスフォーム構築
 - 設定からのバッチサイズ・ワーカー数の読み込み
@@ -373,6 +382,7 @@ model = ImageClassifier(config)
 ```
 
 機能:
+
 - timmモデルの動的作成
 - OptimizerBuilderを使用した動的オプティマイザー設定
 - 訓練・検証・テストステップの実装
@@ -414,7 +424,7 @@ python src/train.py -c config/experiments/food101_efficientnet_b0.yaml \
 
 ## 8. 出力
 
-```
+```text
 outputs/
 └── {exp_name}/
     ├── checkpoints/
@@ -428,7 +438,7 @@ outputs/
 
 ## 9. 依存関係
 
-```
+```text
 pytorch-lightning>=2.0.0
 timm>=0.9.0
 albumentations>=1.3.0
@@ -438,4 +448,3 @@ mlflow>=2.0.0
 pyyaml>=6.0
 loguru>=0.7.0
 ```
-

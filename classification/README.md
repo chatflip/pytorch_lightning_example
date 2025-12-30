@@ -62,7 +62,7 @@ uv run mlflow ui --port 5000
 
 学習後の出力は以下の構造で保存されます：
 
-```
+```text
 outputs/{exp_name}/
 ├── checkpoints/
 │   ├── epoch=XX-val_loss=X.XX.ckpt   # ベストモデル

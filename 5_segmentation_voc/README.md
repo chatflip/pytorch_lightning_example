@@ -12,7 +12,7 @@ Semantic Segmentationを用いた領域分割
 
 ### 実行
 
-```
+```bash
 # ダウンロード，フォルダ構成
 git clone --depth 1 git@github.com:JunMa11/SegLoss.git py/SegLoss-master
 

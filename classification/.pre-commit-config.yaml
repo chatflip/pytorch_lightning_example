@@ -5,3 +5,10 @@ repos:
       - id: prettier
         name: Prettier YAML
         types: [yaml]
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.45.0
+    hooks:
+      - id: markdownlint
+        args: ["--fix"]
+        types: [markdown]

@@ -35,7 +35,7 @@ make lint
 
 ## ディレクトリ構成
 
-```
+```text
 classification/
 ├── config/                           # 設定ファイル
 │   ├── _base_/                       # ベース設定（継承元）
@@ -97,7 +97,7 @@ config = load_config("config/experiments/food101_efficientnet_b0.yaml")
 1. `tools/datasets/` に準備スクリプトを作成
 2. ImageFolder形式でデータを配置
 
-```
+```text
 data/datasets/my_dataset/
 ├── train/
 │   ├── class_a/
@@ -112,7 +112,7 @@ data/datasets/my_dataset/
         └── ...
 ```
 
-3. 実験設定ファイルを作成
+1. 実験設定ファイルを作成
 
 ```yaml
 # config/experiments/my_dataset_resnet50.yaml
