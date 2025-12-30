@@ -34,6 +34,12 @@ def parse_args() -> argparse.Namespace:
         help="Path to checkpoint file (auto-detected if not specified)",
     )
     parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="MLflow run_id (required if --checkpoint is not specified)",
+    )
+    parser.add_argument(
         "--output-dir",
         type=str,
         default=None,
@@ -278,15 +284,24 @@ def main() -> None:
     # 実験ディレクトリを取得
     base_output_dir = Path(config.get("output_dir", "./outputs"))
     exp_name = config.get("exp_name", "default")
-    exp_dir = base_output_dir / exp_name
 
-    # チェックポイントを解決
-    if args.checkpoint is None:
+    # チェックポイントとexp_dirを解決
+    if args.checkpoint is not None:
+        # チェックポイントが明示的に指定された場合
+        checkpoint_path = Path(args.checkpoint)
+        exp_dir = checkpoint_path.parent.parent
+        logger.info(f"Using checkpoint: {checkpoint_path}")
+    elif args.run_id is not None:
+        # run_idが指定された場合
+        exp_dir = base_output_dir / exp_name / args.run_id
         checkpoint_dir = exp_dir / "checkpoints"
         checkpoint_path = find_best_checkpoint(checkpoint_dir)
         logger.info(f"Auto-detected checkpoint: {checkpoint_path}")
     else:
-        checkpoint_path = Path(args.checkpoint)
+        raise ValueError(
+            "Either --checkpoint or --run-id must be specified. "
+            "Use --run-id to specify the MLflow run_id for the experiment."
+        )
 
     # 出力ディレクトリを解決
     if args.output_dir is None:

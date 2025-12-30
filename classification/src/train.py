@@ -6,6 +6,7 @@ import pytorch_lightning as L
 from loguru import logger
 from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.loggers import Logger as PLLogger
+from pytorch_lightning.loggers import MLFlowLogger
 
 from builders import build_logger
 from config import (
@@ -20,18 +21,23 @@ from data import ClassificationDataModule
 from models import ImageClassifier
 
 
-def setup_output_dir(config: dict[str, Any]) -> Path:
+def setup_output_dir(config: dict[str, Any], run_id: str | None = None) -> Path:
     """出力ディレクトリをセットアップする.
 
     Args:
         config: 設定辞書
+        run_id: MLflowのrun_id（指定された場合はディレクトリ名に含める）
 
     Returns:
         出力ディレクトリのパス
     """
     output_dir = Path(config.get("output_dir", "./outputs"))
     exp_name = config.get("exp_name", "default")
-    exp_dir = output_dir / exp_name
+
+    if run_id:
+        exp_dir = output_dir / exp_name / run_id
+    else:
+        exp_dir = output_dir / exp_name
 
     exp_dir.mkdir(parents=True, exist_ok=True)
     (exp_dir / "checkpoints").mkdir(exist_ok=True)
@@ -123,13 +129,18 @@ def main(args: argparse.Namespace) -> None:
     """
     config = load_config(args.config)
 
-    exp_dir = setup_output_dir(config)
+    output_dir = config.get("output_dir", "./outputs")
+    pl_logger = build_logger(config.get("logger", {}), output_dir)
+
+    run_id = None
+    if isinstance(pl_logger, MLFlowLogger):
+        run_id = pl_logger.run_id
+        logger.info(f"MLflow run_id: {run_id}")
+
+    exp_dir = setup_output_dir(config, run_id)
     logger.info(f"Experiment directory: {exp_dir}")
 
     save_config(config, exp_dir / "config.yaml")
-
-    output_dir = config.get("output_dir", "./outputs")
-    pl_logger = build_logger(config.get("logger", {}), output_dir)
 
     if hasattr(pl_logger, "log_hyperparams"):
         pl_logger.log_hyperparams(config)

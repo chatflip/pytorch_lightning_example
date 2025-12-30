@@ -1,8 +1,3 @@
-"""分類タスク用のPyTorch Lightning DataModule.
-
-ImageFolder形式のデータセットに対応した汎用的なDataModule。
-"""
-
 import os
 from pathlib import Path
 from typing import Any
@@ -50,7 +45,6 @@ class ClassificationDataModule(L.LightningDataModule):
         self.num_workers = self.data_config.get("num_workers", os.cpu_count() or 4)
         self.pin_memory = self.data_config.get("pin_memory", True)
 
-        # トランスフォームを構築
         self.train_transform = None
         self.val_transform = None
         if "train" in self.aug_config:
@@ -58,7 +52,6 @@ class ClassificationDataModule(L.LightningDataModule):
         if "val" in self.aug_config:
             self.val_transform = build_transforms(self.aug_config["val"])
 
-        # データセット（setup時に初期化）
         self.train_dataset: ImageFolderDataset | None = None
         self.val_dataset: ImageFolderDataset | None = None
         self.test_dataset: ImageFolderDataset | None = None
@@ -83,7 +76,6 @@ class ClassificationDataModule(L.LightningDataModule):
             )
 
         if stage == "test" or stage is None:
-            # テストはvalと同じディレクトリを使用（別途test/がある場合はそちらを使用）
             test_root = self.dataset_root / "test"
             if not test_root.exists():
                 test_root = self.dataset_root / "val"
@@ -138,7 +130,6 @@ class ClassificationDataModule(L.LightningDataModule):
     @property
     def num_classes(self) -> int:
         """クラス数を返す."""
-        # 設定からnum_classesを取得、なければデータセットから取得
         num_classes = self.data_config.get("num_classes")
         if num_classes is not None:
             return num_classes
