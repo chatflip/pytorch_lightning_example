@@ -1,5 +1,6 @@
 ---
-globs: pyproject.toml
+description: "Package management and dependency installation using uv"
+globs:
 alwaysApply: false
 ---
 

@@ -1,7 +1,8 @@
 ---
-description: Run markdownlint to validate formatting when editing Markdown files
+description: "Run markdownlint to validate formatting when editing Markdown files"
 globs:
   - "**/*.md"
+alwaysApply: false
 ---
 
 # Markdown Formatting with markdownlint
@@ -10,15 +11,14 @@ After editing any Markdown file, you MUST validate formatting with markdownlint.
 
 ## Instructions
 
-1. Run markdownlint via pre-commit:
-   ```bash
-   uv run pre-commit run markdownlint --all-files
-   ```
+1. Run the lint script:
+
+   @scripts/lint.sh
 
 2. If markdownlint modifies files or reports errors:
    - Review the changes or error messages
    - Fix any issues in the Markdown files
-   - Re-run the command
+   - Re-run the script
 
 3. Repeat until the command exits with code 0 (success)
 
