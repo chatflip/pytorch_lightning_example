@@ -1,15 +1,22 @@
-# 基本的なオーギュメンテーション設定
 augmentation:
   train:
     ops:
-      - type: Resize
-        height: 256
-        width: 256
-      - type: RandomCrop
+      - type: RandomResizedCrop
         height: 224
         width: 224
+        scale: [0.08, 1.0]
+        ratio: [0.75, 1.333]
       - type: HorizontalFlip
         p: 0.5
+      - type: ColorJitter
+        brightness: 0.3
+        contrast: 0.3
+        saturation: 0.3
+        hue: 0.1
+        p: 0.5
+      - type: GaussianBlur
+        blur_limit: [3, 7]
+        p: 0.1
       - type: Normalize
         mean: [0.485, 0.456, 0.406]
         std: [0.229, 0.224, 0.225]
