@@ -11,33 +11,11 @@ from builders import build_logger
 from config import (
     ConfigValidationError,
     load_config,
-    override_config,
     save_config,
     validate_training_configs,
 )
 from data import ClassificationDataModule
 from models import ImageClassifier
-
-
-def parse_args() -> argparse.Namespace:
-    """コマンドライン引数をパースする."""
-    parser = argparse.ArgumentParser(description="Image Classification Training")
-    parser.add_argument(
-        "-c",
-        "--config",
-        type=str,
-        required=True,
-        help="Path to config file",
-    )
-    parser.add_argument(
-        "--resume",
-        type=str,
-        default=None,
-        help="Path to checkpoint to resume from",
-    )
-    args, unknown = parser.parse_known_args()
-    args.overrides = unknown
-    return args
 
 
 def setup_output_dir(config: dict[str, Any]) -> Path:
@@ -53,7 +31,6 @@ def setup_output_dir(config: dict[str, Any]) -> Path:
     exp_name = config.get("exp_name", "default")
     exp_dir = output_dir / exp_name
 
-    # ディレクトリを作成
     exp_dir.mkdir(parents=True, exist_ok=True)
     (exp_dir / "checkpoints").mkdir(exist_ok=True)
 
@@ -131,19 +108,13 @@ def build_trainer(
     return trainer
 
 
-def main() -> None:
-    """メイン関数."""
-    args = parse_args()
+def main(args: argparse.Namespace) -> None:
+    """メイン関数.
 
-    logger.info(f"Loading config from: {args.config}")
+    Args:
+        args: コマンドライン引数
+    """
     config = load_config(args.config)
-
-    if args.overrides:
-        config = override_config(config, args.overrides)
-
-    seed = config.get("seed", 42)
-    L.seed_everything(seed)
-    logger.info(f"Random seed: {seed}")
 
     exp_dir = setup_output_dir(config)
     logger.info(f"Experiment directory: {exp_dir}")
@@ -179,4 +150,21 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Image Classification Training")
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="Path to config file",
+    )
+    parser.add_argument(
+        "--resume",
+        type=str,
+        default=None,
+        help="Path to checkpoint to resume from",
+    )
+    args, unknown = parser.parse_known_args()
+    args.overrides = unknown
+
+    main(args)
