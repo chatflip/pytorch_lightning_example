@@ -1,8 +1,3 @@
-"""オプティマイザー・スケジューラービルダー.
-
-YAML設定からtorch.optim.Optimizerとlr_schedulerを構築する。
-"""
-
 from typing import Any, Iterator
 
 import torch.nn as nn
@@ -33,7 +28,6 @@ def build_optimizer(
     config = config.copy()
     optimizer_type = config.pop("type")
 
-    # サポートするオプティマイザー
     optimizer_map = {
         "SGD": optim.SGD,
         "Adam": optim.Adam,
@@ -85,7 +79,6 @@ def build_scheduler(
             raise ValueError("max_epochs is required when T_max is null")
         config["T_max"] = max_epochs
 
-    # サポートするスケジューラー
     scheduler_map = {
         "StepLR": optim.lr_scheduler.StepLR,
         "MultiStepLR": optim.lr_scheduler.MultiStepLR,

@@ -1,11 +1,12 @@
-"""ロガービルダー.
-
-YAML設定からPyTorch Lightningロガーを構築する。
-"""
-
 from typing import Any
 
 from pytorch_lightning.loggers import Logger, MLFlowLogger, TensorBoardLogger
+
+from config import (
+    ConfigValidationError,
+    LoggerConfig,
+    validate_logger_config,
+)
 
 
 def build_logger(config: dict[str, Any], output_dir: str = "./outputs") -> Logger:
@@ -20,61 +21,84 @@ def build_logger(config: dict[str, Any], output_dir: str = "./outputs") -> Logge
         pytorch_lightning.loggers.Logger オブジェクト
 
     Raises:
-        ValueError: 未知のロガータイプの場合
+        ConfigValidationError: 設定のバリデーションに失敗した場合
 
     Example:
         >>> config = {"type": "mlflow", "experiment_name": "classification"}
         >>> logger = build_logger(config)
     """
-    config = config.copy()
-    logger_type = config.pop("type", "mlflow").lower()
+    logger_cfg = validate_logger_config(config)
 
-    if logger_type == "mlflow":
-        return _build_mlflow_logger(config)
-    elif logger_type == "tensorboard":
-        return _build_tensorboard_logger(config, output_dir)
+    if logger_cfg.type == "mlflow":
+        return _build_mlflow_logger(logger_cfg)
     else:
-        raise ValueError(
-            f"Unknown logger type: {logger_type}. Supported: ['mlflow', 'tensorboard']"
-        )
+        return _build_tensorboard_logger(logger_cfg, output_dir)
 
 
-def _build_mlflow_logger(config: dict[str, Any]) -> MLFlowLogger:
+def _build_mlflow_logger(config: LoggerConfig) -> MLFlowLogger:
     """MLFlowLoggerを構築する.
 
     Args:
-        config: MLFlow設定辞書
+        config: バリデーション済みのLoggerConfig
 
     Returns:
         MLFlowLogger オブジェクト
-    """
-    experiment_name = config.get("experiment_name", "classification")
-    tracking_uri = config.get("tracking_uri", None)
-    log_model = config.get("log_model", True)
 
-    return MLFlowLogger(
-        experiment_name=experiment_name,
-        tracking_uri=tracking_uri,
-        log_model=log_model,
-    )
+    Raises:
+        ConfigValidationError: ロガーの構築に失敗した場合
+    """
+    try:
+        return MLFlowLogger(
+            experiment_name=config.experiment_name,
+            tracking_uri=config.tracking_uri,
+            log_model=config.log_model,
+        )
+    except Exception as e:
+        raise ConfigValidationError(
+            section="logger",
+            errors=[
+                {
+                    "loc": ["mlflow"],
+                    "msg": str(e),
+                    "input": {
+                        "experiment_name": config.experiment_name,
+                        "tracking_uri": config.tracking_uri,
+                        "log_model": config.log_model,
+                    },
+                }
+            ],
+        ) from e
 
 
 def _build_tensorboard_logger(
-    config: dict[str, Any], output_dir: str
+    config: LoggerConfig, output_dir: str
 ) -> TensorBoardLogger:
     """TensorBoardLoggerを構築する.
 
     Args:
-        config: TensorBoard設定辞書
+        config: バリデーション済みのLoggerConfig
         output_dir: 出力ディレクトリ
 
     Returns:
         TensorBoardLogger オブジェクト
-    """
-    name = config.get("name", "tensorboard")
-    save_dir = config.get("save_dir", output_dir)
 
-    return TensorBoardLogger(
-        save_dir=save_dir,
-        name=name,
-    )
+    Raises:
+        ConfigValidationError: ロガーの構築に失敗した場合
+    """
+    save_dir = config.save_dir if config.save_dir else output_dir
+    try:
+        return TensorBoardLogger(
+            save_dir=save_dir,
+            name=config.name,
+        )
+    except Exception as e:
+        raise ConfigValidationError(
+            section="logger",
+            errors=[
+                {
+                    "loc": ["tensorboard"],
+                    "msg": str(e),
+                    "input": {"save_dir": save_dir, "name": config.name},
+                }
+            ],
+        ) from e

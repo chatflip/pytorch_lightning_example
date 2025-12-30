@@ -1,8 +1,3 @@
-"""YAML継承を処理する設定ローダー.
-
-DEIMv2スタイルの__base__キーによる設定継承をサポート。
-"""
-
 import os
 import re
 from copy import deepcopy
@@ -47,7 +42,6 @@ def _expand_env_vars(config: Any) -> Any:
     elif isinstance(config, list):
         return [_expand_env_vars(item) for item in config]
     elif isinstance(config, str):
-        # ${ENV_VAR} 形式の環境変数を展開
         pattern = r"\$\{([^}]+)\}"
         matches = re.findall(pattern, config)
         result = config
@@ -113,13 +107,11 @@ def _load_config_with_inheritance(
     if loaded_files is None:
         loaded_files = set()
 
-    # 循環参照チェック
     filepath_str = str(filepath)
     if filepath_str in loaded_files:
         raise ValueError(f"Circular inheritance detected: {filepath}")
     loaded_files.add(filepath_str)
 
-    # 現在のファイルを読み込み
     config = _load_yaml_file(filepath)
     current_dir = filepath.parent
 

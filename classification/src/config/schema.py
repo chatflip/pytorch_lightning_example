@@ -1,6 +1,7 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+import albumentations as A
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 
 class CheckpointConfig(BaseModel):
@@ -123,6 +124,95 @@ class TrainerConfig(BaseModel):
                 "または 1 以上の整数である必要があります"
             )
         return v
+
+
+class LoggerConfig(BaseModel):
+    """ロガー設定のバリデーションスキーマ."""
+
+    type: Literal["mlflow", "tensorboard"] = Field(
+        default="mlflow",
+        description="ロガータイプ",
+    )
+    experiment_name: str = Field(
+        default="classification",
+        description="実験名（MLFlowの場合）",
+    )
+    tracking_uri: str | None = Field(
+        default=None,
+        description="MLFlowトラッキングURI",
+    )
+    log_model: bool = Field(
+        default=True,
+        description="モデルをログするか（MLFlowの場合）",
+    )
+    name: str = Field(
+        default="tensorboard",
+        description="ロガー名（TensorBoardの場合）",
+    )
+    save_dir: str | None = Field(
+        default=None,
+        description="保存ディレクトリ（TensorBoardの場合）",
+    )
+
+    @field_validator("experiment_name")
+    @classmethod
+    def validate_experiment_name(cls, v: str) -> str:
+        """experiment_nameが空でないことを検証."""
+        if not v or not v.strip():
+            raise ValueError("experiment_name は空にできません")
+        return v
+
+
+class TransformOpConfig(BaseModel):
+    """単一トランスフォーム設定のバリデーションスキーマ."""
+
+    type: str = Field(
+        ...,
+        description="トランスフォームのクラス名",
+    )
+
+    model_config = {"extra": "allow"}
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        """typeが有効なトランスフォームかを検証."""
+        if not v or not v.strip():
+            raise ValueError("type は空にできません")
+
+        # ToTensorV2は特別扱い
+        if v == "ToTensorV2":
+            return v
+
+        # albumentationsモジュールに存在するかチェック
+        if not hasattr(A, v):
+            raise ValueError(
+                f"不明なトランスフォームタイプ: {v}. "
+                "albumentationsでサポートされているトランスフォームを指定してください"
+            )
+        return v
+
+
+class TransformConfig(BaseModel):
+    """トランスフォーム設定のバリデーションスキーマ."""
+
+    ops: list[TransformOpConfig] = Field(
+        default_factory=list,
+        description="トランスフォーム操作のリスト",
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_ops(cls, data: Any) -> Any:
+        """opsを TransformOpConfig のリストに変換."""
+        if isinstance(data, dict) and "ops" in data:
+            ops = data.get("ops", [])
+            if isinstance(ops, list):
+                data["ops"] = [
+                    TransformOpConfig(**op) if isinstance(op, dict) else op
+                    for op in ops
+                ]
+        return data
 
 
 class ConfigValidationError(Exception):
@@ -270,3 +360,82 @@ def validate_trainer_from_config(config: dict) -> TrainerConfig:
         ConfigValidationError: バリデーションエラーが発生した場合
     """
     return validate_trainer_config(config.get("trainer", {}))
+
+
+def validate_logger_config(config: dict) -> LoggerConfig:
+    """ロガー設定をバリデーション.
+
+    Args:
+        config: ロガー設定の辞書
+
+    Returns:
+        バリデーション済みのLoggerConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    try:
+        return LoggerConfig(**config)
+    except ValidationError as e:
+        raise ConfigValidationError("logger", e.errors()) from e
+    except Exception as e:
+        raise ConfigValidationError(
+            "logger",
+            [{"loc": [], "msg": str(e), "input": config}],
+        ) from e
+
+
+def validate_logger_from_config(config: dict) -> LoggerConfig:
+    """全体設定辞書からロガー設定をバリデーション.
+
+    Args:
+        config: 全体の設定辞書
+
+    Returns:
+        バリデーション済みのLoggerConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    return validate_logger_config(config.get("logger", {}))
+
+
+def validate_transform_config(config: dict) -> TransformConfig:
+    """トランスフォーム設定をバリデーション.
+
+    Args:
+        config: トランスフォーム設定の辞書
+
+    Returns:
+        バリデーション済みのTransformConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    try:
+        return TransformConfig(**config)
+    except ValidationError as e:
+        raise ConfigValidationError("augmentation", e.errors()) from e
+    except Exception as e:
+        raise ConfigValidationError(
+            "augmentation",
+            [{"loc": [], "msg": str(e), "input": config}],
+        ) from e
+
+
+def validate_transform_from_config(
+    config: dict, section: str = "train_augmentation"
+) -> TransformConfig:
+    """全体設定辞書からトランスフォーム設定をバリデーション.
+
+    Args:
+        config: 全体の設定辞書
+        section: 設定セクション名（train_augmentation または val_augmentation）
+
+    Returns:
+        バリデーション済みのTransformConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    return validate_transform_config(config.get(section, {}))
