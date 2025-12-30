@@ -4,6 +4,7 @@ YAML設定ファイルを使用して学習を実行する。
 """
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -190,6 +191,14 @@ def main() -> None:
             datamodule=datamodule,
             ckpt_path=args.resume,
         )
+
+        # 最良のチェックポイントをbest.ckptとして保存
+        checkpoint_callback = trainer.checkpoint_callback
+        if checkpoint_callback and checkpoint_callback.best_model_path:
+            best_ckpt_path = Path(checkpoint_callback.best_model_path)
+            best_ckpt_dst = best_ckpt_path.parent / "best.ckpt"
+            shutil.copy(best_ckpt_path, best_ckpt_dst)
+            logger.info(f"Best checkpoint saved to: {best_ckpt_dst}")
 
         # テストを実行
         logger.info("Running test...")
