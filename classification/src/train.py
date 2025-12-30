@@ -1,5 +1,4 @@
 import argparse
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -36,22 +35,8 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Path to checkpoint to resume from",
     )
-    parser.add_argument(
-        "--test-only",
-        action="store_true",
-        help="Only run test",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=None,
-        help="Random seed (overrides config)",
-    )
-
-    # 残りの引数はオーバーライドとして扱う
     args, unknown = parser.parse_known_args()
     args.overrides = unknown
-
     return args
 
 
@@ -104,26 +89,44 @@ def build_trainer(
         save_last=checkpoint_cfg.save_last,
     )
 
-    tqdm_callback = TQDMProgressBar(refresh_rate=progress_bar_cfg.refresh_rate)
+    try:
+        tqdm_callback = TQDMProgressBar(refresh_rate=progress_bar_cfg.refresh_rate)
+    except Exception as e:
+        raise ConfigValidationError(
+            section="progress_bar",
+            errors=[
+                {
+                    "loc": ["refresh_rate"],
+                    "msg": str(e),
+                    "input": progress_bar_cfg.refresh_rate,
+                }
+            ],
+        ) from e
 
     callbacks = [
         tqdm_callback,
         checkpoint_callback,
     ]
 
-    trainer = L.Trainer(
-        logger=pl_logger,
-        callbacks=callbacks,
-        max_epochs=trainer_cfg.max_epochs,
-        accelerator=trainer_cfg.accelerator,
-        devices=trainer_cfg.devices,
-        precision=trainer_cfg.precision,
-        strategy=trainer_cfg.strategy,
-        deterministic=trainer_cfg.deterministic,
-        log_every_n_steps=trainer_cfg.log_every_n_steps,
-        val_check_interval=trainer_cfg.val_check_interval,
-        num_sanity_val_steps=0,
-    )
+    try:
+        trainer = L.Trainer(
+            logger=pl_logger,
+            callbacks=callbacks,
+            max_epochs=trainer_cfg.max_epochs,
+            accelerator=trainer_cfg.accelerator,
+            devices=trainer_cfg.devices,
+            precision=trainer_cfg.precision,
+            strategy=trainer_cfg.strategy,
+            deterministic=trainer_cfg.deterministic,
+            log_every_n_steps=trainer_cfg.log_every_n_steps,
+            val_check_interval=trainer_cfg.val_check_interval,
+            num_sanity_val_steps=0,
+        )
+    except Exception as e:
+        raise ConfigValidationError(
+            section="trainer",
+            errors=[{"loc": [], "msg": str(e), "input": "N/A"}],
+        ) from e
 
     return trainer
 
@@ -132,53 +135,35 @@ def main() -> None:
     """メイン関数."""
     args = parse_args()
 
-    # 設定を読み込み
     logger.info(f"Loading config from: {args.config}")
     config = load_config(args.config)
 
-    # コマンドラインオーバーライドを適用
     if args.overrides:
         config = override_config(config, args.overrides)
 
-    # シードのオーバーライド
-    if args.seed is not None:
-        config["seed"] = args.seed
-
-    # シードを設定
     seed = config.get("seed", 42)
     L.seed_everything(seed)
     logger.info(f"Random seed: {seed}")
 
-    # 出力ディレクトリをセットアップ
     exp_dir = setup_output_dir(config)
     logger.info(f"Experiment directory: {exp_dir}")
 
-    # 使用した設定を保存
     save_config(config, exp_dir / "config.yaml")
 
-    # ロガーを構築
     output_dir = config.get("output_dir", "./outputs")
     pl_logger = build_logger(config.get("logger", {}), output_dir)
 
-    # ハイパーパラメータをログ
     if hasattr(pl_logger, "log_hyperparams"):
         pl_logger.log_hyperparams(config)
 
-    # DataModuleを構築
     logger.info("Building DataModule...")
     datamodule = ClassificationDataModule(config)
 
-    # モデルを構築
     logger.info("Building model...")
     model = ImageClassifier(config)
 
-    # Trainerを構築
     logger.info("Building Trainer...")
-    try:
-        trainer = build_trainer(config, exp_dir, pl_logger)
-    except ConfigValidationError as e:
-        logger.error(e.message)
-        sys.exit(1)
+    trainer = build_trainer(config, exp_dir, pl_logger)
 
     logger.info("Starting training...")
     trainer.fit(
@@ -187,7 +172,6 @@ def main() -> None:
         ckpt_path=args.resume,
     )
 
-    # テストを実行
     logger.info("Running test...")
     trainer.test(model, datamodule=datamodule, ckpt_path="best")
 
