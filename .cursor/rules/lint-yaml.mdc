@@ -1,0 +1,29 @@
+---
+description: Run Prettier to validate formatting when editing YAML files
+globs:
+  - "**/*.yaml"
+  - "**/*.yml"
+---
+
+# YAML Formatting with Prettier
+
+After editing any YAML file, you MUST validate formatting with Prettier.
+
+## Instructions
+
+1. Run Prettier via pre-commit:
+   ```bash
+   uv run pre-commit run prettier --all-files
+   ```
+
+2. If Prettier modifies files or reports errors:
+   - Review the changes or error messages
+   - Fix any issues in the YAML files
+   - Re-run the command
+
+3. Repeat until the command exits with code 0 (success)
+
+## Important
+
+- NEVER consider the task complete until Prettier passes
+- Prettier may auto-format files; always verify the final state
