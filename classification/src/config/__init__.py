@@ -1,5 +1,27 @@
 """設定モジュール."""
 
 from config.loader import load_config, override_config, save_config
+from config.schema import (
+    CheckpointConfig,
+    ConfigValidationError,
+    ProgressBarConfig,
+    TrainerConfig,
+    validate_checkpoint_config,
+    validate_progress_bar_config,
+    validate_trainer_config,
+    validate_training_configs,
+)
 
-__all__ = ["load_config", "override_config", "save_config"]
+__all__ = [
+    "load_config",
+    "override_config",
+    "save_config",
+    "CheckpointConfig",
+    "ProgressBarConfig",
+    "TrainerConfig",
+    "ConfigValidationError",
+    "validate_checkpoint_config",
+    "validate_progress_bar_config",
+    "validate_trainer_config",
+    "validate_training_configs",
+]

@@ -9,7 +9,13 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.loggers import Logger as PLLogger
 
 from builders import build_logger
-from config import load_config, override_config, save_config
+from config import (
+    ConfigValidationError,
+    load_config,
+    override_config,
+    save_config,
+    validate_training_configs,
+)
 from data import ClassificationDataModule
 from models import ImageClassifier
 
@@ -83,23 +89,23 @@ def build_trainer(
 
     Returns:
         Trainerオブジェクト
+
+    Raises:
+        ConfigValidationError: 設定のバリデーションに失敗した場合
     """
-    checkpoint_config = config.get("checkpoint", {})
-    progress_bar_config = config.get("progress_bar", {})
-    trainer_config = config.get("trainer", {})
+    # 設定をバリデーション
+    checkpoint_cfg, progress_bar_cfg, trainer_cfg = validate_training_configs(config)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=exp_dir / "checkpoints",
         filename="best",
-        monitor=checkpoint_config.get("monitor", "val_loss"),
-        mode=checkpoint_config.get("mode", "min"),
-        save_top_k=checkpoint_config.get("save_top_k", 1),
-        save_last=checkpoint_config.get("save_last", True),
+        monitor=checkpoint_cfg.monitor,
+        mode=checkpoint_cfg.mode,
+        save_top_k=checkpoint_cfg.save_top_k,
+        save_last=checkpoint_cfg.save_last,
     )
 
-    tqdm_callback = TQDMProgressBar(
-        refresh_rate=progress_bar_config.get("refresh_rate", 10)
-    )
+    tqdm_callback = TQDMProgressBar(refresh_rate=progress_bar_cfg.refresh_rate)
 
     callbacks = [
         tqdm_callback,
@@ -109,14 +115,14 @@ def build_trainer(
     trainer = L.Trainer(
         logger=pl_logger,
         callbacks=callbacks,
-        max_epochs=trainer_config.get("max_epochs", 100),
-        accelerator=trainer_config.get("accelerator", "gpu"),
-        devices=trainer_config.get("devices", 1),
-        precision=trainer_config.get("precision", "16-mixed"),
-        strategy=trainer_config.get("strategy", "auto"),
-        deterministic=trainer_config.get("deterministic", True),
-        log_every_n_steps=trainer_config.get("log_every_n_steps", 10),
-        val_check_interval=trainer_config.get("val_check_interval", 1.0),
+        max_epochs=trainer_cfg.max_epochs,
+        accelerator=trainer_cfg.accelerator,
+        devices=trainer_cfg.devices,
+        precision=trainer_cfg.precision,
+        strategy=trainer_cfg.strategy,
+        deterministic=trainer_cfg.deterministic,
+        log_every_n_steps=trainer_cfg.log_every_n_steps,
+        val_check_interval=trainer_cfg.val_check_interval,
         num_sanity_val_steps=0,
     )
 
@@ -169,7 +175,11 @@ def main() -> None:
 
     # Trainerを構築
     logger.info("Building Trainer...")
-    trainer = build_trainer(config, exp_dir, pl_logger)
+    try:
+        trainer = build_trainer(config, exp_dir, pl_logger)
+    except ConfigValidationError as e:
+        logger.error(e.message)
+        sys.exit(1)
 
     if args.test_only:
         # テストのみ実行

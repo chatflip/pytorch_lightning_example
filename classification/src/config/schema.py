@@ -1,0 +1,248 @@
+from typing import Literal
+
+from pydantic import BaseModel, Field, field_validator
+
+
+class CheckpointConfig(BaseModel):
+    """チェックポイント設定のバリデーションスキーマ."""
+
+    monitor: str = Field(
+        default="val_loss",
+        description="監視するメトリクス名",
+    )
+    mode: Literal["min", "max"] = Field(
+        default="min",
+        description="監視モード（'min': 最小値が最良, 'max': 最大値が最良）",
+    )
+    save_top_k: int = Field(
+        default=1,
+        ge=-1,
+        description="保存するチェックポイント数（-1: 全て保存, 0: 保存しない）",
+    )
+    save_last: bool = Field(
+        default=True,
+        description="最後のエポックのチェックポイントを保存するか",
+    )
+
+    @field_validator("monitor")
+    @classmethod
+    def validate_monitor(cls, v: str) -> str:
+        """monitorが空でないことを検証."""
+        if not v or not v.strip():
+            raise ValueError("monitor は空にできません")
+        return v
+
+
+class ProgressBarConfig(BaseModel):
+    """プログレスバー設定のバリデーションスキーマ."""
+
+    refresh_rate: int = Field(
+        default=10,
+        ge=1,
+        description="プログレスバーの更新頻度（バッチ数）",
+    )
+
+
+class TrainerConfig(BaseModel):
+    """トレーナー設定のバリデーションスキーマ."""
+
+    max_epochs: int = Field(
+        default=100,
+        ge=1,
+        description="最大エポック数",
+    )
+    accelerator: Literal["cpu", "gpu", "cuda", "tpu", "mps", "auto"] = Field(
+        default="gpu",
+        description="使用するアクセラレータ（'gpu'と'cuda'は同義）",
+    )
+    devices: int | Literal["auto"] = Field(
+        default=1,
+        description="使用するデバイス数（'auto': 自動選択）",
+    )
+    precision: Literal[
+        "64",
+        "32",
+        "16",
+        "bf16",
+        "64-true",
+        "32-true",
+        "16-true",
+        "bf16-true",
+        "16-mixed",
+        "bf16-mixed",
+    ] = Field(
+        default="16-mixed",
+        description="計算精度",
+    )
+    strategy: Literal[
+        "auto",
+        "ddp",
+        "ddp_spawn",
+        "ddp_notebook",
+        "fsdp",
+        "deepspeed",
+    ] = Field(
+        default="auto",
+        description="分散学習戦略",
+    )
+    deterministic: bool | Literal["warn"] = Field(
+        default=True,
+        description="決定論的な計算を行うか（'warn': 警告のみ）",
+    )
+    log_every_n_steps: int = Field(
+        default=10,
+        ge=1,
+        description="ログを出力するステップ間隔",
+    )
+    val_check_interval: float | int = Field(
+        default=1.0,
+        description="検証を行う間隔（0.0-1.0: エポックの割合, >=1: バッチ数）",
+    )
+
+    @field_validator("devices")
+    @classmethod
+    def validate_devices(cls, v: int | str) -> int | str:
+        """devicesの値を検証."""
+        if isinstance(v, int) and v < 1:
+            raise ValueError("devicesは1以上の整数または'auto'である必要があります")
+        return v
+
+    @field_validator("val_check_interval")
+    @classmethod
+    def validate_val_check_interval(cls, v: float | int) -> float | int:
+        """val_check_intervalの値を検証."""
+        if isinstance(v, float) and (v <= 0 or v > 1.0):
+            if v < 1.0:
+                raise ValueError(
+                    "val_check_interval は 0.0 より大きく 1.0 以下の小数、"
+                    "または 1 以上の整数である必要があります"
+                )
+        if isinstance(v, int) and v < 1:
+            raise ValueError(
+                "val_check_interval は 0.0 より大きく 1.0 以下の小数、"
+                "または 1 以上の整数である必要があります"
+            )
+        return v
+
+
+class ConfigValidationError(Exception):
+    """設定バリデーションエラー."""
+
+    def __init__(self, section: str, errors: list[dict]) -> None:
+        """初期化.
+
+        Args:
+            section: エラーが発生した設定セクション名
+            errors: バリデーションエラーのリスト
+        """
+        self.section = section
+        self.errors = errors
+        self.message = self._format_error_message()
+        super().__init__(self.message)
+
+    def _format_error_message(self) -> str:
+        """エラーメッセージをフォーマット."""
+        lines = [f"\n設定エラー [{self.section}]:"]
+        lines.append("=" * 50)
+
+        for error in self.errors:
+            field = ".".join(str(loc) for loc in error.get("loc", []))
+            msg = error.get("msg", "不明なエラー")
+            input_val = error.get("input", "N/A")
+
+            lines.append(f"  フィールド: {field}")
+            lines.append(f"    入力値: {input_val}")
+            lines.append(f"    エラー: {msg}")
+            lines.append("")
+
+        return "\n".join(lines)
+
+
+def validate_checkpoint_config(config: dict) -> CheckpointConfig:
+    """チェックポイント設定をバリデーション.
+
+    Args:
+        config: チェックポイント設定の辞書
+
+    Returns:
+        バリデーション済みのCheckpointConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    try:
+        return CheckpointConfig(**config)
+    except Exception as e:
+        if hasattr(e, "errors"):
+            raise ConfigValidationError("checkpoint", e.errors()) from e
+        raise ConfigValidationError(
+            "checkpoint",
+            [{"loc": [], "msg": str(e), "input": config}],
+        ) from e
+
+
+def validate_progress_bar_config(config: dict) -> ProgressBarConfig:
+    """プログレスバー設定をバリデーション.
+
+    Args:
+        config: プログレスバー設定の辞書
+
+    Returns:
+        バリデーション済みのProgressBarConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    try:
+        return ProgressBarConfig(**config)
+    except Exception as e:
+        if hasattr(e, "errors"):
+            raise ConfigValidationError("progress_bar", e.errors()) from e
+        raise ConfigValidationError(
+            "progress_bar",
+            [{"loc": [], "msg": str(e), "input": config}],
+        ) from e
+
+
+def validate_trainer_config(config: dict) -> TrainerConfig:
+    """トレーナー設定をバリデーション.
+
+    Args:
+        config: トレーナー設定の辞書
+
+    Returns:
+        バリデーション済みのTrainerConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    try:
+        return TrainerConfig(**config)
+    except Exception as e:
+        if hasattr(e, "errors"):
+            raise ConfigValidationError("trainer", e.errors()) from e
+        raise ConfigValidationError(
+            "trainer",
+            [{"loc": [], "msg": str(e), "input": config}],
+        ) from e
+
+
+def validate_training_configs(
+    config: dict,
+) -> tuple[CheckpointConfig, ProgressBarConfig, TrainerConfig]:
+    """トレーニング関連の全設定をバリデーション.
+
+    Args:
+        config: 全体の設定辞書
+
+    Returns:
+        (CheckpointConfig, ProgressBarConfig, TrainerConfig) のタプル
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    checkpoint_config = validate_checkpoint_config(config.get("checkpoint", {}))
+    progress_bar_config = validate_progress_bar_config(config.get("progress_bar", {}))
+    trainer_config = validate_trainer_config(config.get("trainer", {}))
+
+    return checkpoint_config, progress_bar_config, trainer_config

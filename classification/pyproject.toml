@@ -9,6 +9,7 @@ dependencies = [
     "loguru>=0.7.3",
     "matplotlib>=3.8.0",
     "mlflow>=3.8.1",
+    "pydantic>=2.0.0",
     "pytorch-lightning~=2.6.0",
     "pyyaml>=6.0.0",
     "seaborn>=0.13.0",
@@ -26,6 +27,8 @@ lint = [
 ]
 dev = [
     "pre-commit>=4.5.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
 ]
 
 [[tool.uv.index]]
@@ -106,3 +109,12 @@ MD033 = false    # no-inline-html Inline HTML
 MD041 = false    # first-line-heading/first-line-h1
 MD046 = false    # indented-code-blocks
 MD059 = false    # descriptive-link-text
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+    "--cov=./",
+    "--cov-report=xml",
+    "--verbose",
+]
