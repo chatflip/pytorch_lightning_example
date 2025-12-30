@@ -19,6 +19,7 @@ from config import (
 )
 from data import ClassificationDataModule
 from models import ImageClassifier
+from validate import run_validation
 
 
 def setup_output_dir(config: dict[str, Any], run_id: str | None = None) -> Path:
@@ -121,13 +122,19 @@ def build_trainer(
     return trainer
 
 
-def main(args: argparse.Namespace) -> None:
-    """メイン関数.
+def run_training(
+    config_path: str,
+    resume: str | None = None,
+    validate: bool = False,
+) -> None:
+    """トレーニングを実行する.
 
     Args:
-        args: コマンドライン引数
+        config_path: 設定ファイルのパス
+        resume: 再開するチェックポイントのパス
+        validate: トレーニング後に検証を実行するかどうか
     """
-    config = load_config(args.config)
+    config = load_config(config_path)
 
     seed = config.get("seed", 42)
     L.seed_everything(seed, workers=True)
@@ -161,13 +168,20 @@ def main(args: argparse.Namespace) -> None:
     trainer.fit(
         model,
         datamodule=datamodule,
-        ckpt_path=args.resume,
+        ckpt_path=resume,
     )
 
     logger.info("Running test...")
     trainer.test(model, datamodule=datamodule, ckpt_path="best")
 
-    logger.info("Done!")
+    logger.info("Training done!")
+
+    if validate and run_id:
+        logger.info("=" * 50)
+        logger.info("Starting validation...")
+        logger.info("=" * 50)
+
+        run_validation(config_path=config_path, run_id=run_id)
 
 
 if __name__ == "__main__":
@@ -185,7 +199,16 @@ if __name__ == "__main__":
         default=None,
         help="Path to checkpoint to resume from",
     )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Run validation after training",
+    )
     args, unknown = parser.parse_known_args()
     args.overrides = unknown
 
-    main(args)
+    run_training(
+        config_path=args.config,
+        resume=args.resume,
+        validate=args.validate,
+    )

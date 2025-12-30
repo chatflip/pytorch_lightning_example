@@ -347,39 +347,49 @@ def save_class_metrics(
     logger.info(f"Class metrics saved to: {output_path}")
 
 
-def main(args: argparse.Namespace) -> None:
-    """メイン関数.
+def run_validation(
+    config_path: str,
+    run_id: str | None = None,
+    checkpoint: str | None = None,
+    output_dir: str | None = None,
+) -> None:
+    """検証を実行する.
+
+    train.pyから直接呼び出すためのエントリーポイント.
 
     Args:
-        args: コマンドライン引数
+        config_path: 設定ファイルのパス
+        run_id: MLflow run_id (checkpointが指定されていない場合に必要)
+        checkpoint: チェックポイントファイルのパス (省略時は自動検出)
+        output_dir: 結果出力ディレクトリ (省略時は {exp_dir}/validation)
     """
-    logger.info(f"Loading config from: {args.config}")
-    config = load_config(args.config)
+    logger.info(f"Loading config from: {config_path}")
+    config = load_config(config_path)
 
     base_output_dir = Path(config.get("output_dir", "./outputs"))
     exp_name = config.get("exp_name", "default")
 
-    if args.checkpoint is not None:
-        checkpoint_path = Path(args.checkpoint)
+    if checkpoint is not None:
+        checkpoint_path = Path(checkpoint)
         exp_dir = checkpoint_path.parent.parent
         logger.info(f"Using checkpoint: {checkpoint_path}")
-    elif args.run_id is not None:
-        exp_dir = base_output_dir / exp_name / args.run_id
+    elif run_id is not None:
+        exp_dir = base_output_dir / exp_name / run_id
         checkpoint_dir = exp_dir / "checkpoints"
         checkpoint_path = find_best_checkpoint(checkpoint_dir)
         logger.info(f"Auto-detected checkpoint: {checkpoint_path}")
     else:
         raise ValueError(
-            "Either --checkpoint or --run-id must be specified. "
-            "Use --run-id to specify the MLflow run_id for the experiment."
+            "Either checkpoint or run_id must be specified. "
+            "Use run_id to specify the MLflow run_id for the experiment."
         )
 
-    if args.output_dir is None:
-        output_dir = exp_dir / "validation"
+    if output_dir is None:
+        result_output_dir = exp_dir / "validation"
     else:
-        output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Output directory: {output_dir}")
+        result_output_dir = Path(output_dir)
+    result_output_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Output directory: {result_output_dir}")
 
     seed = config.get("seed", 42)
     L.seed_everything(seed)
@@ -458,10 +468,10 @@ def main(args: argparse.Namespace) -> None:
         )
     logger.info("=" * 50)
 
-    predictions_path = output_dir / "predictions.csv"
-    metrics_path = output_dir / "metrics.csv"
-    confusion_matrix_path = output_dir / "confusion_matrix.png"
-    class_metrics_path = output_dir / "class_metrics.csv"
+    predictions_path = result_output_dir / "predictions.csv"
+    metrics_path = result_output_dir / "metrics.csv"
+    confusion_matrix_path = result_output_dir / "confusion_matrix.png"
+    class_metrics_path = result_output_dir / "class_metrics.csv"
 
     save_predictions(predictions, predictions_path)
     save_metrics(metrics, metrics_path)
@@ -470,13 +480,13 @@ def main(args: argparse.Namespace) -> None:
         class_metrics, classes, class_samples, class_correct, class_metrics_path
     )
 
-    if args.run_id is not None:
-        logger.info(f"Logging artifacts to MLflow run: {args.run_id}")
+    if run_id is not None:
+        logger.info(f"Logging artifacts to MLflow run: {run_id}")
         logger_config = config.get("logger", {})
         tracking_uri = logger_config.get("tracking_uri", "mlruns")
         set_tracking_uri(tracking_uri)
 
-        with start_run(run_id=args.run_id):
+        with start_run(run_id=run_id):
             log_artifact(str(predictions_path), artifact_path="validation")
             log_artifact(str(metrics_path), artifact_path="validation")
             log_artifact(str(confusion_matrix_path), artifact_path="validation")
@@ -529,4 +539,9 @@ if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
     args.overrides = unknown
 
-    main(args)
+    run_validation(
+        config_path=args.config,
+        run_id=args.run_id,
+        checkpoint=args.checkpoint,
+        output_dir=args.output_dir,
+    )
