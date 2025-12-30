@@ -1,19 +1,13 @@
-"""汎用ImageFolder形式データセット.
-
-albumentationsトランスフォームに対応した画像分類データセット。
-"""
-
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import albumentations as A
-import numpy as np
+import cv2
 import torch
-from PIL import Image
 from torch.utils.data import Dataset
 
-# サポートする画像拡張子
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff"}
+ColorOrder = Literal["rgb", "bgr"]
 
 
 class ImageFolderDataset(Dataset[tuple[torch.Tensor, int]]):
@@ -31,6 +25,7 @@ class ImageFolderDataset(Dataset[tuple[torch.Tensor, int]]):
     Attributes:
         root: データセットのルートディレクトリ
         transform: albumentationsトランスフォーム
+        color_order: 画像の色順序 ("rgb" または "bgr")
         classes: クラス名のリスト
         class_to_idx: クラス名からインデックスへのマッピング
         samples: (画像パス, ラベル) のリスト
@@ -40,27 +35,28 @@ class ImageFolderDataset(Dataset[tuple[torch.Tensor, int]]):
         self,
         root: str | Path,
         transform: A.Compose | None = None,
+        color_order: ColorOrder = "bgr",
     ) -> None:
         """ImageFolderDatasetを初期化する.
 
         Args:
             root: データセットのルートディレクトリ
             transform: albumentationsトランスフォーム（オプション）
+            color_order: 画像の色順序 ("rgb" または "bgr")
         """
         self.root = Path(root)
         self.transform = transform
+        self.color_order = color_order
 
         if not self.root.exists():
             raise FileNotFoundError(f"Dataset root not found: {self.root}")
 
-        # クラス名を取得（ディレクトリ名がクラス名）
         self.classes = sorted([d.name for d in self.root.iterdir() if d.is_dir()])
         if len(self.classes) == 0:
             raise ValueError(f"No class directories found in {self.root}")
 
         self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(self.classes)}
 
-        # サンプルを収集
         self.samples: list[tuple[Path, int]] = []
         for class_name in self.classes:
             class_dir = self.root / class_name
@@ -88,17 +84,15 @@ class ImageFolderDataset(Dataset[tuple[torch.Tensor, int]]):
         """
         img_path, label = self.samples[index]
 
-        # 画像を読み込み（RGB形式）
-        image = Image.open(img_path).convert("RGB")
-        image_np = np.array(image)
+        image = cv2.imread(str(img_path))
+        if self.color_order == "rgb":
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        # albumentationsトランスフォームを適用
         if self.transform is not None:
-            transformed: dict[str, Any] = self.transform(image=image_np)
+            transformed: dict[str, Any] = self.transform(image=image)
             image_tensor: torch.Tensor = transformed["image"]
         else:
-            # transformがない場合は単純にテンソル化
-            image_tensor = torch.from_numpy(image_np).permute(2, 0, 1).float() / 255.0
+            image_tensor = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
 
         return image_tensor, label
 

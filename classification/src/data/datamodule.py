@@ -44,6 +44,7 @@ class ClassificationDataModule(L.LightningDataModule):
         self.batch_size = self.data_config.get("batch_size", 32)
         self.num_workers = self.data_config.get("num_workers", os.cpu_count() or 4)
         self.pin_memory = self.data_config.get("pin_memory", True)
+        self.color_order = self.data_config.get("color_order", "rgb")
 
         self.train_transform = None
         self.val_transform = None
@@ -69,10 +70,12 @@ class ClassificationDataModule(L.LightningDataModule):
             self.train_dataset = ImageFolderDataset(
                 root=train_root,
                 transform=self.train_transform,
+                color_order=self.color_order,
             )
             self.val_dataset = ImageFolderDataset(
                 root=val_root,
                 transform=self.val_transform,
+                color_order=self.color_order,
             )
 
         if stage == "test" or stage is None:
@@ -83,6 +86,7 @@ class ClassificationDataModule(L.LightningDataModule):
             self.test_dataset = ImageFolderDataset(
                 root=test_root,
                 transform=self.val_transform,
+                color_order=self.color_order,
             )
 
     def train_dataloader(self) -> DataLoader:
