@@ -65,13 +65,14 @@ class ClassificationDataModule(L.LightningDataModule):
         """
         if stage == "fit" or stage is None:
             train_root = self.dataset_root / "train"
-            val_root = self.dataset_root / "val"
-
             self.train_dataset = ImageFolderDataset(
                 root=train_root,
                 transform=self.train_transform,
                 color_order=self.color_order,
             )
+
+        if stage in ("fit", "validate") or stage is None:
+            val_root = self.dataset_root / "val"
             self.val_dataset = ImageFolderDataset(
                 root=val_root,
                 transform=self.val_transform,

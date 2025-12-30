@@ -129,6 +129,9 @@ def main(args: argparse.Namespace) -> None:
     """
     config = load_config(args.config)
 
+    seed = config.get("seed", 42)
+    L.seed_everything(seed, workers=True)
+
     output_dir = config.get("output_dir", "./outputs")
     pl_logger = build_logger(config.get("logger", {}), output_dir)
 
