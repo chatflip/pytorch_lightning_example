@@ -1,6 +1,6 @@
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 
 class CheckpointConfig(BaseModel):
@@ -128,7 +128,7 @@ class TrainerConfig(BaseModel):
 class ConfigValidationError(Exception):
     """設定バリデーションエラー."""
 
-    def __init__(self, section: str, errors: list[dict]) -> None:
+    def __init__(self, section: str, errors: list[Any]) -> None:
         """初期化.
 
         Args:
@@ -172,9 +172,9 @@ def validate_checkpoint_config(config: dict) -> CheckpointConfig:
     """
     try:
         return CheckpointConfig(**config)
+    except ValidationError as e:
+        raise ConfigValidationError("checkpoint", e.errors()) from e
     except Exception as e:
-        if hasattr(e, "errors"):
-            raise ConfigValidationError("checkpoint", e.errors()) from e
         raise ConfigValidationError(
             "checkpoint",
             [{"loc": [], "msg": str(e), "input": config}],
@@ -195,9 +195,9 @@ def validate_progress_bar_config(config: dict) -> ProgressBarConfig:
     """
     try:
         return ProgressBarConfig(**config)
+    except ValidationError as e:
+        raise ConfigValidationError("progress_bar", e.errors()) from e
     except Exception as e:
-        if hasattr(e, "errors"):
-            raise ConfigValidationError("progress_bar", e.errors()) from e
         raise ConfigValidationError(
             "progress_bar",
             [{"loc": [], "msg": str(e), "input": config}],
@@ -218,9 +218,9 @@ def validate_trainer_config(config: dict) -> TrainerConfig:
     """
     try:
         return TrainerConfig(**config)
+    except ValidationError as e:
+        raise ConfigValidationError("trainer", e.errors()) from e
     except Exception as e:
-        if hasattr(e, "errors"):
-            raise ConfigValidationError("trainer", e.errors()) from e
         raise ConfigValidationError(
             "trainer",
             [{"loc": [], "msg": str(e), "input": config}],

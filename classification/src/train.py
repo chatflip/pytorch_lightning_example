@@ -93,7 +93,6 @@ def build_trainer(
     Raises:
         ConfigValidationError: 設定のバリデーションに失敗した場合
     """
-    # 設定をバリデーション
     checkpoint_cfg, progress_bar_cfg, trainer_cfg = validate_training_configs(config)
 
     checkpoint_callback = ModelCheckpoint(
@@ -181,26 +180,16 @@ def main() -> None:
         logger.error(e.message)
         sys.exit(1)
 
-    if args.test_only:
-        # テストのみ実行
-        if args.resume is None:
-            logger.error("--resume is required for --test-only")
-            sys.exit(1)
+    logger.info("Starting training...")
+    trainer.fit(
+        model,
+        datamodule=datamodule,
+        ckpt_path=args.resume,
+    )
 
-        logger.info(f"Running test with checkpoint: {args.resume}")
-        trainer.test(model, datamodule=datamodule, ckpt_path=args.resume)
-    else:
-        # 学習を実行
-        logger.info("Starting training...")
-        trainer.fit(
-            model,
-            datamodule=datamodule,
-            ckpt_path=args.resume,
-        )
-
-        # テストを実行
-        logger.info("Running test...")
-        trainer.test(model, datamodule=datamodule, ckpt_path="best")
+    # テストを実行
+    logger.info("Running test...")
+    trainer.test(model, datamodule=datamodule, ckpt_path="best")
 
     logger.info("Done!")
 

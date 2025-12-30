@@ -152,13 +152,13 @@ def validate(
     # メトリクスを計算
     metrics = {
         "loss": total_loss / total_samples,
-        "top1_accuracy": acc1.compute().item(),
-        "top5_accuracy": acc5.compute().item(),
+        "top1_accuracy": acc1.compute().item(),  # type: ignore[call-arg]
+        "top5_accuracy": acc5.compute().item(),  # type: ignore[call-arg]
         "total_samples": total_samples,
     }
 
     # 混同行列を取得
-    confusion_matrix = confusion.compute().cpu().numpy()
+    confusion_matrix = confusion.compute().cpu().numpy()  # type: ignore[call-arg]
 
     return predictions, metrics, confusion_matrix
 
