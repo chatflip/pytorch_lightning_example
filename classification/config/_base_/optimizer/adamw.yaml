@@ -1,4 +1,3 @@
-# AdamW オプティマイザー設定
 optimizer:
   type: AdamW
   lr: 0.001

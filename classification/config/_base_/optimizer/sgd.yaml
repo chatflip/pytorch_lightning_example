@@ -1,4 +1,3 @@
-# SGD オプティマイザー設定
 optimizer:
   type: SGD
   lr: 0.01

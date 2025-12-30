@@ -1,4 +1,3 @@
-# ResNet-50 モデル設定
 model:
   name: "resnet50"
   pretrained: true

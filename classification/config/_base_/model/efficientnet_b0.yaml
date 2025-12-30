@@ -1,4 +1,3 @@
-# EfficientNet-B0 モデル設定
 model:
   name: "efficientnet_b0"
   pretrained: true

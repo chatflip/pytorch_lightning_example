@@ -1,4 +1,3 @@
-# 共通デフォルト設定
 seed: 42
 output_dir: "./outputs"
 exp_name: "default"
