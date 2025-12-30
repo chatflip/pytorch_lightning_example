@@ -11,4 +11,4 @@ logger:
   type: "mlflow"
   experiment_name: "classification"
   log_model: true
-  tracking_uri: null  # null = ローカル
+  tracking_uri: null # null = ローカル

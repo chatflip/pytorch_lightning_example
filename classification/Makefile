@@ -13,6 +13,7 @@ help:
 
 install:
 	@uv sync --all-groups
+	@pre-commit install
 
 format:
 	@uv run --frozen ruff check --fix --unsafe-fixes ${SRC_DIR}

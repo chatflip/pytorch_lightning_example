@@ -7,6 +7,5 @@ optimizer:
 
 scheduler:
   type: CosineAnnealingLR
-  T_max: null  # null = max_epochsを使用
+  T_max: null # null = max_epochsを使用
   eta_min: 0.00001
-
