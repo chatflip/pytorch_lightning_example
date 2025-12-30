@@ -79,6 +79,9 @@ def _build_single_transform(op_config: TransformOpConfig) -> A.BasicTransform:
     op_type = op_config.type
     op_args = {k: v for k, v in op_config.model_dump().items() if k != "type"}
 
+    if op_type == "RandomResizedCrop" and "height" in op_args and "width" in op_args:
+        op_args["size"] = (op_args.pop("height"), op_args.pop("width"))
+
     try:
         if op_type == "ToTensorV2":
             return ToTensorV2(**op_args)

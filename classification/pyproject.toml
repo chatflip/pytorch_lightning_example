@@ -94,7 +94,7 @@ unfixable = ["B"]
 convention = "google"
 
 [tool.ty.src]
-include = ["src"]
+include = ["src", "tests"]
 
 [tool.ty.terminal]
 error-on-warning = true
