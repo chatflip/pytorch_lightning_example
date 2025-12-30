@@ -7,19 +7,4 @@
 - Ubuntu
 - [uv](https://docs.astral.sh/uv/)
 
-## Installation
-
-### 実行環境導入(仮想環境)
-
-```bash
-make install
-```
-
-## Usage
-
-### formatter, linter, type checker
-
-```bash
-make format
-make lint
-```
+[画像認識(Image Classification)](./classification)
