@@ -1,4 +1,3 @@
-# 強いオーギュメンテーション設定
 augmentation:
   train:
     ops:

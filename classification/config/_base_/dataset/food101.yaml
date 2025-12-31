@@ -1,0 +1,4 @@
+data:
+  dataset_root: "data/datasets/food101"
+  num_classes: 101
+  color_order: bgr

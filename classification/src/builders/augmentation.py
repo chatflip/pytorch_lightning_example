@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 import albumentations as A
@@ -11,12 +12,20 @@ from config import (
 )
 
 
-def build_transforms(config: dict[str, Any]) -> A.Compose:
+def build_transforms(
+    config: dict[str, Any],
+    model_config: dict[str, Any] | None = None,
+    is_train: bool = True,
+) -> A.Compose:
     """YAML設定からalbumentationsパイプラインを構築する.
 
     Args:
         config: ops配列を含む辞書
             例: {"ops": [{"type": "Resize", "height": 256, "width": 256}, ...]}
+        model_config: モデル設定辞書。input_sizeとcrop_pctを含む場合、
+            augmentationのサイズを自動調整する。
+        is_train: 訓練用かどうか。Falseの場合、valのResize/CenterCropサイズを
+            crop_pctに基づいて計算する。
 
     Returns:
         albumentations.Compose オブジェクト
@@ -31,9 +40,25 @@ def build_transforms(config: dict[str, Any]) -> A.Compose:
     transform_cfg = validate_transform_config(config)
     transforms: list[A.BasicTransform | BaseCompose] = []
 
+    # モデル設定からサイズ情報を取得
+    input_size: int | None = None
+    crop_pct: float = 0.875  # デフォルト値
+    resize_size: int | None = None
+
+    if model_config:
+        input_size = model_config.get("input_size")
+        crop_pct = model_config.get("crop_pct", 0.875)
+        if input_size:
+            resize_size = int(math.ceil(input_size / crop_pct))
+
     for i, op_config in enumerate(transform_cfg.ops):
         try:
-            transform = _build_single_transform(op_config)
+            transform = _build_single_transform(
+                op_config,
+                input_size=input_size,
+                resize_size=resize_size,
+                is_train=is_train,
+            )
             transforms.append(transform)
         except ConfigValidationError:
             raise
@@ -64,11 +89,19 @@ def build_transforms(config: dict[str, Any]) -> A.Compose:
         ) from e
 
 
-def _build_single_transform(op_config: TransformOpConfig) -> A.BasicTransform:
+def _build_single_transform(
+    op_config: TransformOpConfig,
+    input_size: int | None = None,
+    resize_size: int | None = None,
+    is_train: bool = True,
+) -> A.BasicTransform:
     """単一のトランスフォームを構築する.
 
     Args:
         op_config: バリデーション済みのTransformOpConfig
+        input_size: モデルの入力サイズ（指定時はheight/widthをオーバーライド）
+        resize_size: valのResizeサイズ（input_size / crop_pctで計算）
+        is_train: 訓練用かどうか
 
     Returns:
         albumentationsトランスフォームオブジェクト
@@ -78,6 +111,21 @@ def _build_single_transform(op_config: TransformOpConfig) -> A.BasicTransform:
     """
     op_type = op_config.type
     op_args = {k: v for k, v in op_config.model_dump().items() if k != "type"}
+
+    # モデル設定に基づいてサイズをオーバーライド
+    if input_size is not None:
+        if op_type == "RandomResizedCrop":
+            # 訓練用: input_sizeを使用
+            op_args["height"] = input_size
+            op_args["width"] = input_size
+        elif op_type == "CenterCrop":
+            # CenterCropは常にinput_sizeを使用
+            op_args["height"] = input_size
+            op_args["width"] = input_size
+        elif op_type == "Resize" and not is_train and resize_size is not None:
+            # val用: resize_sizeを使用
+            op_args["height"] = resize_size
+            op_args["width"] = resize_size
 
     if op_type == "RandomResizedCrop" and "height" in op_args and "width" in op_args:
         op_args["size"] = (op_args.pop("height"), op_args.pop("width"))

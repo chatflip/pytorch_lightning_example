@@ -32,6 +32,8 @@ class ClassificationDataModule(L.LightningDataModule):
                 - data.batch_size: バッチサイズ
                 - data.num_workers: ワーカー数
                 - data.pin_memory: ピンメモリの使用
+                - model.input_size: モデルの入力サイズ（自動調整用）
+                - model.crop_pct: クロップ比率（自動調整用）
                 - augmentation.train: 訓練用オーギュメンテーション設定
                 - augmentation.val: 検証用オーギュメンテーション設定
         """
@@ -39,6 +41,7 @@ class ClassificationDataModule(L.LightningDataModule):
         self.config = config
         self.data_config = config.get("data", {})
         self.aug_config = config.get("augmentation", {})
+        self.model_config = config.get("model", {})
 
         self.dataset_root = Path(self.data_config.get("dataset_root", "./datasets"))
         self.batch_size = self.data_config.get("batch_size", 32)
@@ -49,9 +52,17 @@ class ClassificationDataModule(L.LightningDataModule):
         self.train_transform = None
         self.val_transform = None
         if "train" in self.aug_config:
-            self.train_transform = build_transforms(self.aug_config["train"])
+            self.train_transform = build_transforms(
+                self.aug_config["train"],
+                model_config=self.model_config,
+                is_train=True,
+            )
         if "val" in self.aug_config:
-            self.val_transform = build_transforms(self.aug_config["val"])
+            self.val_transform = build_transforms(
+                self.aug_config["val"],
+                model_config=self.model_config,
+                is_train=False,
+            )
 
         self.train_dataset: ImageFolderDataset | None = None
         self.val_dataset: ImageFolderDataset | None = None

@@ -1,7 +1,7 @@
 model:
-  name: "efficientnet_b0"
+  name: "swin_tiny_patch4_window7_224"
   pretrained: true
   drop_rate: 0.0
   drop_path_rate: 0.0
   input_size: 224
-  crop_pct: 0.875
+  crop_pct: 0.9
