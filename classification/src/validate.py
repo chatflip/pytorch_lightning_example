@@ -10,7 +10,7 @@ import seaborn as sns
 import torch
 import torch.nn.functional as F
 from loguru import logger
-from mlflow import log_artifact, log_metrics, set_tracking_uri, start_run
+from mlflow import log_artifact, set_tracking_uri, start_run
 from torchmetrics.classification import (
     MulticlassAccuracy,
     MulticlassConfusionMatrix,
@@ -491,19 +491,6 @@ def run_validation(
             log_artifact(str(metrics_path), artifact_path="validation")
             log_artifact(str(confusion_matrix_path), artifact_path="validation")
             log_artifact(str(class_metrics_path), artifact_path="validation")
-            log_metrics(
-                {
-                    "val_loss": metrics["loss"],
-                    "val_top1_accuracy": metrics["top1_accuracy"],
-                    "val_top5_accuracy": metrics["top5_accuracy"],
-                    "val_precision_macro": metrics["precision_macro"],
-                    "val_recall_macro": metrics["recall_macro"],
-                    "val_f1_macro": metrics["f1_macro"],
-                    "val_precision_weighted": metrics["precision_weighted"],
-                    "val_recall_weighted": metrics["recall_weighted"],
-                    "val_f1_weighted": metrics["f1_weighted"],
-                }
-            )
         logger.info("Artifacts logged to MLflow")
 
     logger.info("Done!")
