@@ -89,6 +89,50 @@ def build_transforms(
         ) from e
 
 
+def _raise_size_error(op_type: str, op_args: dict[str, Any]) -> None:
+    """サイズ未指定エラーを発生させる."""
+    error_msg = "height/widthが未指定です。model.input_sizeを設定してください"
+    raise ConfigValidationError(
+        section="augmentation",
+        errors=[
+            {
+                "loc": ["ops", op_type],
+                "msg": error_msg,
+                "input": op_args,
+            }
+        ],
+    )
+
+
+def _apply_size_defaults(
+    op_type: str,
+    op_args: dict[str, Any],
+    input_size: int | None,
+    resize_size: int | None,
+    is_train: bool,
+) -> dict[str, Any]:
+    """サイズ関連のデフォルト値を適用する."""
+    if "height" in op_args and "width" in op_args:
+        return op_args
+
+    if op_type in ("RandomResizedCrop", "CenterCrop"):
+        if input_size is None:
+            _raise_size_error(op_type, op_args)
+        op_args["height"] = input_size
+        op_args["width"] = input_size
+    elif op_type == "Resize":
+        if not is_train and resize_size is not None:
+            op_args["height"] = resize_size
+            op_args["width"] = resize_size
+        elif input_size is not None:
+            op_args["height"] = input_size
+            op_args["width"] = input_size
+        else:
+            _raise_size_error(op_type, op_args)
+
+    return op_args
+
+
 def _build_single_transform(
     op_config: TransformOpConfig,
     input_size: int | None = None,
@@ -112,59 +156,16 @@ def _build_single_transform(
     op_type = op_config.type
     op_args = {k: v for k, v in op_config.model_dump().items() if k != "type"}
 
-    if op_type == "RandomResizedCrop":
-        if "height" not in op_args or "width" not in op_args:
-            if input_size is None:
-                raise ConfigValidationError(
-                    section="augmentation",
-                    errors=[
-                        {
-                            "loc": ["ops", op_type],
-                            "msg": "height/widthが未指定です。model.input_sizeを設定してください",
-                            "input": op_args,
-                        }
-                    ],
-                )
-            op_args["height"] = input_size
-            op_args["width"] = input_size
-    elif op_type == "CenterCrop":
-        if "height" not in op_args or "width" not in op_args:
-            if input_size is None:
-                raise ConfigValidationError(
-                    section="augmentation",
-                    errors=[
-                        {
-                            "loc": ["ops", op_type],
-                            "msg": "height/widthが未指定です。model.input_sizeを設定してください",
-                            "input": op_args,
-                        }
-                    ],
-                )
-            op_args["height"] = input_size
-            op_args["width"] = input_size
-    elif op_type == "Resize":
-        if "height" not in op_args or "width" not in op_args:
-            if not is_train and resize_size is not None:
-                op_args["height"] = resize_size
-                op_args["width"] = resize_size
-            elif input_size is not None:
-                op_args["height"] = input_size
-                op_args["width"] = input_size
-            else:
-                raise ConfigValidationError(
-                    section="augmentation",
-                    errors=[
-                        {
-                            "loc": ["ops", op_type],
-                            "msg": "height/widthが未指定です。model.input_sizeを設定してください",
-                            "input": op_args,
-                        }
-                    ],
-                )
+    op_args = _apply_size_defaults(op_type, op_args, input_size, resize_size, is_train)
 
     if op_type == "RandomResizedCrop" and "height" in op_args and "width" in op_args:
         op_args["size"] = (op_args.pop("height"), op_args.pop("width"))
 
+    return _instantiate_transform(op_type, op_args)
+
+
+def _instantiate_transform(op_type: str, op_args: dict[str, Any]) -> A.BasicTransform:
+    """トランスフォームクラスをインスタンス化する."""
     try:
         if op_type == "ToTensorV2":
             return ToTensorV2(**op_args)
