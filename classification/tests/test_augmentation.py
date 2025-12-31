@@ -171,6 +171,77 @@ class TestGaussianBlur:
         assert transform.p == 0.1
 
 
+class TestModelConfigSizeOverride:
+    """model_configからサイズを自動設定するテスト."""
+
+    def test_random_resized_crop_size_from_model_config(self) -> None:
+        """RandomResizedCropでheight/width未指定時にmodel_configから取得されることを確認."""
+        config = {
+            "ops": [
+                {"type": "RandomResizedCrop", "scale": [0.08, 1.0], "ratio": [0.75, 1.333]},
+                {"type": "ToTensorV2"},
+            ]
+        }
+        model_config = {"input_size": 380, "crop_pct": 0.922}
+        transform = build_transforms(config, model_config=model_config, is_train=True)
+
+        assert isinstance(transform, A.Compose)
+        assert isinstance(transform.transforms[0], A.RandomResizedCrop)
+        assert transform.transforms[0].size == (380, 380)
+
+    def test_center_crop_size_from_model_config(self) -> None:
+        """CenterCropでheight/width未指定時にmodel_configから取得されることを確認."""
+        config = {
+            "ops": [
+                {"type": "CenterCrop"},
+                {"type": "ToTensorV2"},
+            ]
+        }
+        model_config = {"input_size": 380, "crop_pct": 0.922}
+        transform = build_transforms(config, model_config=model_config, is_train=False)
+
+        assert isinstance(transform, A.Compose)
+        assert isinstance(transform.transforms[0], A.CenterCrop)
+        assert transform.transforms[0].height == 380
+        assert transform.transforms[0].width == 380
+
+    def test_resize_size_from_model_config_val(self) -> None:
+        """Resizeでheight/width未指定時にcrop_pctから計算されたサイズが使用されることを確認."""
+        config = {
+            "ops": [
+                {"type": "Resize"},
+                {"type": "ToTensorV2"},
+            ]
+        }
+        model_config = {"input_size": 380, "crop_pct": 0.922}
+        # resize_size = ceil(380 / 0.922) = 413
+        transform = build_transforms(config, model_config=model_config, is_train=False)
+
+        assert isinstance(transform, A.Compose)
+        assert isinstance(transform.transforms[0], A.Resize)
+        assert transform.transforms[0].height == 413
+        assert transform.transforms[0].width == 413
+
+    def test_full_val_pipeline_from_model_config(self) -> None:
+        """val用の完全なパイプラインがmodel_configから正しく構築されることを確認."""
+        config = {
+            "ops": [
+                {"type": "Resize"},
+                {"type": "CenterCrop"},
+                {"type": "Normalize", "mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+                {"type": "ToTensorV2"},
+            ]
+        }
+        model_config = {"input_size": 224, "crop_pct": 0.875}
+        transform = build_transforms(config, model_config=model_config, is_train=False)
+
+        dummy_image = np.random.randint(0, 256, (300, 300, 3), dtype=np.uint8)
+        result = transform(image=dummy_image)
+
+        assert "image" in result
+        assert result["image"].shape == (3, 224, 224)
+
+
 class TestErrorHandling:
     """エラーハンドリングのテスト."""
 
@@ -189,6 +260,19 @@ class TestErrorHandling:
 
         with pytest.raises(ConfigValidationError):
             build_transforms(config)
+
+    def test_missing_size_without_model_config_raises_error(self) -> None:
+        """height/width未指定かつmodel_configなしでエラーが発生することを確認."""
+        config = {
+            "ops": [
+                {"type": "RandomResizedCrop", "scale": [0.08, 1.0]},
+            ]
+        }
+
+        with pytest.raises(ConfigValidationError) as exc_info:
+            build_transforms(config)
+
+        assert "height/widthが未指定" in str(exc_info.value)
 
 
 if __name__ == "__main__":

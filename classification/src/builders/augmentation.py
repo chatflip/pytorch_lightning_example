@@ -99,7 +99,7 @@ def _build_single_transform(
 
     Args:
         op_config: バリデーション済みのTransformOpConfig
-        input_size: モデルの入力サイズ（指定時はheight/widthをオーバーライド）
+        input_size: モデルの入力サイズ（height/widthが未指定の場合に使用）
         resize_size: valのResizeサイズ（input_size / crop_pctで計算）
         is_train: 訓練用かどうか
 
@@ -112,20 +112,55 @@ def _build_single_transform(
     op_type = op_config.type
     op_args = {k: v for k, v in op_config.model_dump().items() if k != "type"}
 
-    # モデル設定に基づいてサイズをオーバーライド
-    if input_size is not None:
-        if op_type == "RandomResizedCrop":
-            # 訓練用: input_sizeを使用
+    if op_type == "RandomResizedCrop":
+        if "height" not in op_args or "width" not in op_args:
+            if input_size is None:
+                raise ConfigValidationError(
+                    section="augmentation",
+                    errors=[
+                        {
+                            "loc": ["ops", op_type],
+                            "msg": "height/widthが未指定です。model.input_sizeを設定してください",
+                            "input": op_args,
+                        }
+                    ],
+                )
             op_args["height"] = input_size
             op_args["width"] = input_size
-        elif op_type == "CenterCrop":
-            # CenterCropは常にinput_sizeを使用
+    elif op_type == "CenterCrop":
+        if "height" not in op_args or "width" not in op_args:
+            if input_size is None:
+                raise ConfigValidationError(
+                    section="augmentation",
+                    errors=[
+                        {
+                            "loc": ["ops", op_type],
+                            "msg": "height/widthが未指定です。model.input_sizeを設定してください",
+                            "input": op_args,
+                        }
+                    ],
+                )
             op_args["height"] = input_size
             op_args["width"] = input_size
-        elif op_type == "Resize" and not is_train and resize_size is not None:
-            # val用: resize_sizeを使用
-            op_args["height"] = resize_size
-            op_args["width"] = resize_size
+    elif op_type == "Resize":
+        if "height" not in op_args or "width" not in op_args:
+            if not is_train and resize_size is not None:
+                op_args["height"] = resize_size
+                op_args["width"] = resize_size
+            elif input_size is not None:
+                op_args["height"] = input_size
+                op_args["width"] = input_size
+            else:
+                raise ConfigValidationError(
+                    section="augmentation",
+                    errors=[
+                        {
+                            "loc": ["ops", op_type],
+                            "msg": "height/widthが未指定です。model.input_sizeを設定してください",
+                            "input": op_args,
+                        }
+                    ],
+                )
 
     if op_type == "RandomResizedCrop" and "height" in op_args and "width" in op_args:
         op_args["size"] = (op_args.pop("height"), op_args.pop("width"))

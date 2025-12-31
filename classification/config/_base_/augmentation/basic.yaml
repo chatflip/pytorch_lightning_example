@@ -2,8 +2,6 @@ augmentation:
   train:
     ops:
       - type: RandomResizedCrop
-        height: 224
-        width: 224
         scale: [0.08, 1.0]
         ratio: [0.75, 1.333]
       - type: HorizontalFlip
@@ -24,11 +22,7 @@ augmentation:
   val:
     ops:
       - type: Resize
-        height: 256
-        width: 256
       - type: CenterCrop
-        height: 224
-        width: 224
       - type: Normalize
         mean: [0.485, 0.456, 0.406]
         std: [0.229, 0.224, 0.225]
