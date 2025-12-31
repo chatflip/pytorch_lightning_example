@@ -5,7 +5,7 @@ trainer:
   precision: "16-mixed"
   strategy: "auto"
   deterministic: true
-  log_every_n_steps: 10
+  log_every_n_steps: 100
   val_check_interval: 1.0
 
 progress_bar:
