@@ -96,9 +96,9 @@ class ImageClassifier(L.LightningModule):
 
         self.train_acc1(outputs, targets)
 
-        self.log("train/loss", loss, on_step=True, on_epoch=False, prog_bar=True)
+        self.log("loss/train", loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log(
-            "train/accuracy",
+            "metrics/top1/train",
             self.train_acc1,
             on_step=True,
             on_epoch=False,
@@ -123,9 +123,9 @@ class ImageClassifier(L.LightningModule):
         self.val_acc1(outputs, targets)
 
         # ログ
-        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("loss/val", loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log(
-            "val/accuracy",
+            "metrics/top1/val",
             self.val_acc1,
             on_step=False,
             on_epoch=True,
