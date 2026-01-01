@@ -1,0 +1,4 @@
+scheduler:
+  type: StepLR
+  step_size: 1000 # ステップ数単位（例: 1000ステップごとにLR減衰）
+  gamma: 0.1

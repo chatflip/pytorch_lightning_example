@@ -18,7 +18,6 @@ class ImageClassifier(L.LightningModule):
     """
 
     _config: dict[str, Any]
-    loss_name: str
 
     def __init__(self, config: dict[str, Any]) -> None:
         """ImageClassifierを初期化する.
@@ -56,9 +55,7 @@ class ImageClassifier(L.LightningModule):
         # 損失関数を構築
         loss_config = config.get("loss", {"type": "cross_entropy"})
         class_counts = data_config.get("class_counts", None)
-        criterion, loss_name = build_loss(loss_config, class_counts)
-        self.criterion = criterion
-        object.__setattr__(self, "loss_name", loss_name)
+        self.criterion = build_loss(loss_config, class_counts)
 
         self.train_acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1)
         self.val_acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1)
@@ -93,7 +90,7 @@ class ImageClassifier(L.LightningModule):
         self.train_acc1(outputs, targets)
 
         self.log(
-            f"loss/{self.loss_name}/train",
+            "loss/train",
             loss,
             on_step=True,
             on_epoch=False,
@@ -106,6 +103,11 @@ class ImageClassifier(L.LightningModule):
             on_epoch=False,
             prog_bar=True,
         )
+
+        opt = self.optimizers()
+        if opt is not None:
+            lr = opt.param_groups[0]["lr"]
+            self.log("lr", lr, on_step=True, on_epoch=False, prog_bar=False)
 
         return {"loss": loss}
 
@@ -125,7 +127,7 @@ class ImageClassifier(L.LightningModule):
         self.val_acc1(outputs, targets)
 
         self.log(
-            f"loss/{self.loss_name}/val",
+            "loss/val",
             loss,
             on_step=False,
             on_epoch=True,
@@ -148,8 +150,8 @@ class ImageClassifier(L.LightningModule):
         optimizer_config = self._config.get("optimizer", {"opt": "adamw"}).copy()
         model_config = self._config.get("model", {})
         scheduler_config = self._config.get("scheduler", None)
-        trainer_config = self._config.get("trainer", {})
-        max_epochs = trainer_config.get("max_epochs", 100)
+
+        max_steps = self.trainer.estimated_stepping_batches
 
         lr = model_config.get("lr")
         if lr is None:
@@ -161,13 +163,15 @@ class ImageClassifier(L.LightningModule):
         if scheduler_config is None:
             return optimizer
 
-        scheduler = build_scheduler(scheduler_config, optimizer, max_epochs)
+        scheduler = build_scheduler(
+            scheduler_config, optimizer, max_steps, self.trainer.max_epochs
+        )
 
         return OptimizerLRSchedulerConfig(
             optimizer=optimizer,
             lr_scheduler={
                 "scheduler": scheduler,
-                "interval": "epoch",
+                "interval": "step",
                 "frequency": 1,
             },
         )

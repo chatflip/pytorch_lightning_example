@@ -3,7 +3,9 @@ __base__:
   - ../_base_/model/mobilenet_v2.yaml
   - ../_base_/dataset/food101.yaml
   - ../_base_/augmentation/basic.yaml
+  - ../_base_/loss/focal.yaml
   - ../_base_/optimizer/adamw.yaml
+  - ../_base_/scheduler/flat_cosine.yaml
   - ../_base_/trainer/default.yaml
 
 exp_name: "food101_mobilenet_v2"
@@ -14,6 +16,10 @@ data:
 trainer:
   max_epochs: 50
   precision: "16-mixed"
+
+scheduler:
+  warmup_epochs: 10 # 20% of max_epochs
+  flat_epochs: 25 # max_epochs // 2
 
 logger:
   experiment_name: "food101_classification"

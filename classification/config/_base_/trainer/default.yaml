@@ -13,7 +13,7 @@ progress_bar:
   refresh_rate: 10
 
 checkpoint:
-  monitor: "val/loss"
+  monitor: "loss/val"
   mode: "min"
   save_top_k: 1
   save_last: true

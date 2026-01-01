@@ -98,7 +98,7 @@ def compute_class_weights(
 def build_loss(
     config: dict[str, Any],
     class_counts: list[int] | torch.Tensor | None = None,
-) -> tuple[nn.Module, str]:
+) -> nn.Module:
     """YAML設定から損失関数を構築する.
 
     Args:
@@ -107,18 +107,17 @@ def build_loss(
         class_counts: 各クラスのサンプル数（weight="balanced"の場合に必要）
 
     Returns:
-        (損失関数, 損失関数名) のタプル
+        損失関数
 
     Raises:
         ValueError: 未知の損失関数タイプ、または必要なパラメータが不足している場合
 
     Example:
         >>> config = {"type": "focal", "gamma": 2.0, "alpha": "balanced"}
-        >>> loss_fn, loss_name = build_loss(config, class_counts=[100, 50, 10])
+        >>> loss_fn = build_loss(config, class_counts=[100, 50, 10])
     """
     config = config.copy()
     loss_type = config.pop("type", "cross_entropy")
-    loss_name = loss_type
 
     weight = config.pop("weight", None)
     alpha = config.pop("alpha", None)
@@ -156,4 +155,4 @@ def build_loss(
             f"Unknown loss type: {loss_type}. Supported: ['cross_entropy', 'focal']"
         )
 
-    return loss_fn, loss_name
+    return loss_fn
