@@ -70,7 +70,6 @@ class ImageSegmentator(L.LightningModule):
         for key in self.criterions.keys():
             single_loss = self.criterions[key](output, target)
             loss += self.criterions_weight[key] * single_loss
-            # GPU:0の結果のみlog保存
             self.log(f"train_{key}", single_loss.item())
         iou_acc = self.metrics(output, target)
         self.log("train_loss", loss.item())

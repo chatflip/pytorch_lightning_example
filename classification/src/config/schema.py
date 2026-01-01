@@ -180,11 +180,9 @@ class TransformOpConfig(BaseModel):
         if not v or not v.strip():
             raise ValueError("type は空にできません")
 
-        # ToTensorV2は特別扱い
         if v == "ToTensorV2":
             return v
 
-        # albumentationsモジュールに存在するかチェック
         if not hasattr(A, v):
             raise ValueError(
                 f"不明なトランスフォームタイプ: {v}. "

@@ -158,7 +158,7 @@ def main(args: DictConfig) -> None:
     color_map = get_pascal_labels()
     device = torch.device(
         "cuda" if torch.cuda.is_available() else "cpu"
-    )  # cpuとgpu自動選択
+    )
     model = model.eval().to(device)
 
     camera_width = 1280

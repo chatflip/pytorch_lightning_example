@@ -1,9 +1,3 @@
-"""画像分類用のPyTorch Lightningモジュール.
-
-timmモデルとYAML設定に基づく動的オプティマイザー設定をサポート。
-torchmetricsを使用した精度計算。
-"""
-
 from typing import Any
 
 import pytorch_lightning as L
@@ -23,7 +17,6 @@ class ImageClassifier(L.LightningModule):
     YAML設定からモデル、オプティマイザー、スケジューラーを動的に構築する。
     """
 
-    # クラス変数として設定を保持するための型アノテーション
     _config: dict[str, Any]
 
     def __init__(self, config: dict[str, Any]) -> None:
@@ -40,10 +33,8 @@ class ImageClassifier(L.LightningModule):
         """
         super().__init__()
         self.save_hyperparameters(config)
-        # __setattr__を回避してobject経由で設定
         object.__setattr__(self, "_config", config)
 
-        # モデル設定
         model_config = config.get("model", {})
         data_config = config.get("data", {})
 
@@ -53,7 +44,6 @@ class ImageClassifier(L.LightningModule):
         drop_path_rate = model_config.get("drop_path_rate", 0.0)
         num_classes = data_config.get("num_classes", 1000)
 
-        # timmモデルを作成
         self.model = timm.create_model(
             model_name=model_name,
             pretrained=pretrained,
@@ -122,7 +112,6 @@ class ImageClassifier(L.LightningModule):
 
         self.val_acc1(outputs, targets)
 
-        # ログ
         self.log("loss/val", loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log(
             "metrics/top1/val",

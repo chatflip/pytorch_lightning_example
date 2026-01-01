@@ -59,7 +59,6 @@ def validate(
 
     acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1).to(device)
     acc5 = MulticlassAccuracy(num_classes=num_classes, top_k=5).to(device)
-    # クラスごとのメトリクス (average=None)
     acc_per_class = MulticlassAccuracy(
         num_classes=num_classes, top_k=1, average=None
     ).to(device)
@@ -70,13 +69,11 @@ def validate(
         device
     )
     f1_per_class = MulticlassF1Score(num_classes=num_classes, average=None).to(device)
-    # Macro平均
     prec_macro = MulticlassPrecision(num_classes=num_classes, average="macro").to(
         device
     )
     recall_macro = MulticlassRecall(num_classes=num_classes, average="macro").to(device)
     f1_macro = MulticlassF1Score(num_classes=num_classes, average="macro").to(device)
-    # Weighted平均
     prec_weighted = MulticlassPrecision(num_classes=num_classes, average="weighted").to(
         device
     )
@@ -222,7 +219,6 @@ def save_metrics(metrics: dict[str, float], output_path: Path) -> None:
         writer.writerow(
             {"metric": "top5_accuracy", "value": f"{metrics['top5_accuracy']:.4f}"}
         )
-        # Macro平均
         writer.writerow(
             {"metric": "precision_macro", "value": f"{metrics['precision_macro']:.4f}"}
         )
@@ -230,7 +226,6 @@ def save_metrics(metrics: dict[str, float], output_path: Path) -> None:
             {"metric": "recall_macro", "value": f"{metrics['recall_macro']:.4f}"}
         )
         writer.writerow({"metric": "f1_macro", "value": f"{metrics['f1_macro']:.4f}"})
-        # Weighted平均
         writer.writerow(
             {
                 "metric": "precision_weighted",
@@ -281,7 +276,7 @@ def save_confusion_matrix(
 
     sns.heatmap(
         confusion_matrix,
-        annot=len(classes) <= 20,  # 20クラス以下なら数値を表示
+        annot=len(classes) <= 20,
         fmt="d",
         cmap="Blues",
         xticklabels=classes,
