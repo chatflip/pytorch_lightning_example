@@ -84,6 +84,7 @@ exclude = [
 select = ["C", "E", "F", "I", "W", "D"]
 ignore = [
     "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
     "D400",  # First line should end with a period
     "D415"  # First line should end with a period, question mark, or exclamation point
 ]
@@ -98,7 +99,7 @@ unfixable = ["B"]
 convention = "google"
 
 [tool.ty.src]
-include = ["src", "tests"]
+include = ["src", "tests", "tools"]
 
 [tool.ty.terminal]
 error-on-warning = true

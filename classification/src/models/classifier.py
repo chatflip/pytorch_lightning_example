@@ -3,11 +3,11 @@ from typing import Any
 import pytorch_lightning as L
 import timm
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from pytorch_lightning.utilities.types import OptimizerLRSchedulerConfig
 from torchmetrics.classification import MulticlassAccuracy
 
+from builders.loss import build_loss
 from builders.optimizer import build_optimizer, build_scheduler
 
 
@@ -18,6 +18,7 @@ class ImageClassifier(L.LightningModule):
     """
 
     _config: dict[str, Any]
+    loss_name: str
 
     def __init__(self, config: dict[str, Any]) -> None:
         """ImageClassifierを初期化する.
@@ -52,7 +53,12 @@ class ImageClassifier(L.LightningModule):
             drop_path_rate=drop_path_rate,
         )
 
-        self.criterion = nn.CrossEntropyLoss()
+        # 損失関数を構築
+        loss_config = config.get("loss", {"type": "cross_entropy"})
+        class_counts = data_config.get("class_counts", None)
+        criterion, loss_name = build_loss(loss_config, class_counts)
+        self.criterion = criterion
+        object.__setattr__(self, "loss_name", loss_name)
 
         self.train_acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1)
         self.val_acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1)
@@ -86,7 +92,13 @@ class ImageClassifier(L.LightningModule):
 
         self.train_acc1(outputs, targets)
 
-        self.log("loss/train", loss, on_step=True, on_epoch=False, prog_bar=True)
+        self.log(
+            f"loss/{self.loss_name}/train",
+            loss,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+        )
         self.log(
             "metrics/top1/train",
             self.train_acc1,
@@ -112,7 +124,13 @@ class ImageClassifier(L.LightningModule):
 
         self.val_acc1(outputs, targets)
 
-        self.log("loss/val", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(
+            f"loss/{self.loss_name}/val",
+            loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+        )
         self.log(
             "metrics/top1/val",
             self.val_acc1,

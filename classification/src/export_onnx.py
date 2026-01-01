@@ -1,9 +1,3 @@
-"""PyTorch LightningモデルをONNX形式でエクスポートするスクリプト.
-
-学習済みチェックポイントをONNX形式に変換し、
-推論エンジン（TensorRT、ONNX Runtime等）で利用可能にする。
-"""
-
 import argparse
 from pathlib import Path
 from typing import Any

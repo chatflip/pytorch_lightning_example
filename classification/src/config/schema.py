@@ -163,6 +163,60 @@ class LoggerConfig(BaseModel):
         return v
 
 
+class LossConfig(BaseModel):
+    """損失関数設定のバリデーションスキーマ."""
+
+    _SUPPORTED_LOSS_TYPES = ["cross_entropy", "focal"]
+
+    type: Literal["cross_entropy", "focal"] = Field(
+        default="cross_entropy",
+        description="損失関数タイプ",
+    )
+    weight: list[float] | Literal["balanced"] | None = Field(
+        default=None,
+        description="クラス重み（CrossEntropyLoss用）: 'balanced' または重みのリスト",
+    )
+    alpha: list[float] | Literal["balanced"] | None = Field(
+        default=None,
+        description="クラス重み（FocalLoss用）: 'balanced' または重みのリスト",
+    )
+    gamma: float = Field(
+        default=2.0,
+        ge=0.0,
+        description="フォーカシングパラメータ（FocalLoss用）",
+    )
+    label_smoothing: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="ラベルスムージング係数",
+    )
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        """typeが有効な損失関数かを検証."""
+        if v not in cls._SUPPORTED_LOSS_TYPES:
+            raise ValueError(
+                f"不明な損失関数タイプ: {v}. サポート: {cls._SUPPORTED_LOSS_TYPES}"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_loss_params(self) -> "LossConfig":
+        """損失関数タイプに応じたパラメータを検証."""
+        if self.type == "cross_entropy" and self.alpha is not None:
+            raise ValueError(
+                "alpha は FocalLoss 用のパラメータです。weight を使用してください。"
+            )
+        if self.type == "focal" and self.weight is not None:
+            raise ValueError(
+                "weight は CrossEntropyLoss 用のパラメータです。"
+                "alpha を使用してください。"
+            )
+        return self
+
+
 class TransformOpConfig(BaseModel):
     """単一トランスフォーム設定のバリデーションスキーマ."""
 
@@ -381,6 +435,44 @@ def validate_logger_config(config: dict) -> LoggerConfig:
             "logger",
             [{"loc": [], "msg": str(e), "input": config}],
         ) from e
+
+
+def validate_loss_config(config: dict) -> LossConfig:
+    """損失関数設定をバリデーション.
+
+    Args:
+        config: 損失関数設定の辞書
+
+    Returns:
+        バリデーション済みのLossConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    try:
+        return LossConfig(**config)
+    except ValidationError as e:
+        raise ConfigValidationError("loss", e.errors()) from e
+    except Exception as e:
+        raise ConfigValidationError(
+            "loss",
+            [{"loc": [], "msg": str(e), "input": config}],
+        ) from e
+
+
+def validate_loss_from_config(config: dict) -> LossConfig:
+    """全体設定辞書から損失関数設定をバリデーション.
+
+    Args:
+        config: 全体の設定辞書
+
+    Returns:
+        バリデーション済みのLossConfig
+
+    Raises:
+        ConfigValidationError: バリデーションエラーが発生した場合
+    """
+    return validate_loss_config(config.get("loss", {}))
 
 
 def validate_transform_config(config: dict) -> TransformConfig:

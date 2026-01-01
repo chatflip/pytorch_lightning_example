@@ -1,5 +1,3 @@
-"""設定モジュール."""
-
 from config.loader import load_config, save_config
 from config.schema import (
     CheckpointConfig,
