@@ -3,4 +3,3 @@ scheduler:
   total_steps: null
   warmup_epochs: 4
   flat_epochs: 50
-  eta_min: 0.00001

@@ -102,16 +102,18 @@ def build_scheduler(
     optimizer: optim.Optimizer,
     max_steps: int | None = None,
     max_epochs: int | None = None,
+    min_lr: float | None = None,
 ) -> LRScheduler:
     """YAML設定から学習率スケジューラーを構築する.
 
     Args:
         config: スケジューラー設定辞書
-            例: {"type": "CosineAnnealingLR", "T_max": null, "eta_min": 0.00001}
+            例: {"type": "CosineAnnealingLR", "T_max": null}
             FlatCosineSchedulerの場合、warmup_epochs/flat_epochsでエポック指定可能
         optimizer: オプティマイザー
         max_steps: 最大ステップ数（T_maxがnullの場合に使用）
         max_epochs: 最大エポック数（エポック→ステップ変換に使用）
+        min_lr: 最小学習率（model configから取得、eta_minとして使用）
 
     Returns:
         torch.optim.lr_scheduler オブジェクト
@@ -121,10 +123,14 @@ def build_scheduler(
 
     Example:
         >>> config = {"type": "CosineAnnealingLR", "T_max": 100}
-        >>> scheduler = build_scheduler(config, optimizer)
+        >>> scheduler = build_scheduler(config, optimizer, min_lr=1e-6)
     """
     config = config.copy()
     scheduler_type = config.pop("type")
+
+    # model configのmin_lrをeta_minとして設定（設定ファイルのeta_minより優先）
+    if min_lr is not None:
+        config["eta_min"] = min_lr
 
     # T_maxがnullの場合はmax_stepsを使用
     if "T_max" in config and config["T_max"] is None:

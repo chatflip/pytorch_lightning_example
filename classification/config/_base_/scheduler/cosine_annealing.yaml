@@ -1,4 +1,3 @@
 scheduler:
   type: CosineAnnealingLR
   T_max: null # null = max_stepsを使用（自動計算）
-  eta_min: 0.00001

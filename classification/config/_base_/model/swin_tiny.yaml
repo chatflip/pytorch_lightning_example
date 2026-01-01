@@ -1,6 +1,7 @@
 model:
   name: "swin_tiny_patch4_window7_224"
   lr: 5e-5
+  min_lr: 5e-6
   pretrained: true
   drop_rate: 0.0
   drop_path_rate: 0.0

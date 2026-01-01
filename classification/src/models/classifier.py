@@ -163,8 +163,9 @@ class ImageClassifier(L.LightningModule):
         if scheduler_config is None:
             return optimizer
 
+        min_lr = model_config.get("min_lr", 1e-6)
         scheduler = build_scheduler(
-            scheduler_config, optimizer, max_steps, self.trainer.max_epochs
+            scheduler_config, optimizer, max_steps, self.trainer.max_epochs, min_lr
         )
 
         return OptimizerLRSchedulerConfig(
