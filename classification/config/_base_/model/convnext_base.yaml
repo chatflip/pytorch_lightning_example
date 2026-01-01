@@ -1,5 +1,6 @@
 model:
-  name: "efficientnet_b0"
+  name: "convnext_base"
+  lr: 1e-4
   pretrained: true
   drop_rate: 0.0
   drop_path_rate: 0.0

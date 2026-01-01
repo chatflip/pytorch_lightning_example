@@ -171,9 +171,6 @@ def run_training(
         ckpt_path=resume,
     )
 
-    logger.info("Running test...")
-    trainer.test(model, datamodule=datamodule, ckpt_path="best")
-
     logger.info("Training done!")
 
     if validate and run_id:

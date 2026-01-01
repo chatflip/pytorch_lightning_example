@@ -1,50 +1,28 @@
-from typing import Any, Iterator
+from typing import Any
 
 import torch.nn as nn
 import torch.optim as optim
+from timm.optim import create_optimizer_v2
 from torch.optim.lr_scheduler import LRScheduler
 
 
-def build_optimizer(
-    config: dict[str, Any], parameters: Iterator[nn.Parameter]
-) -> optim.Optimizer:
-    """YAML設定からオプティマイザーを構築する.
+def build_optimizer(config: dict[str, Any], model: nn.Module) -> optim.Optimizer:
+    """YAML設定からオプティマイザーを構築する（timm使用）.
 
     Args:
         config: オプティマイザー設定辞書
-            例: {"type": "AdamW", "lr": 0.001, "weight_decay": 0.01}
-        parameters: モデルのパラメータイテレータ
+            例: {"opt": "adamw", "lr": 0.001, "weight_decay": 0.01}
+        model: モデル
 
     Returns:
         torch.optim.Optimizer オブジェクト
 
-    Raises:
-        ValueError: 未知のオプティマイザータイプの場合
-
     Example:
-        >>> config = {"type": "AdamW", "lr": 0.001, "weight_decay": 0.01}
-        >>> optimizer = build_optimizer(config, model.parameters())
+        >>> config = {"opt": "adamw", "lr": 0.001, "weight_decay": 0.01}
+        >>> optimizer = build_optimizer(config, model)
     """
-    config = config.copy()
-    optimizer_type = config.pop("type")
-
-    optimizer_map = {
-        "SGD": optim.SGD,
-        "Adam": optim.Adam,
-        "AdamW": optim.AdamW,
-        "RMSprop": optim.RMSprop,
-        "Adadelta": optim.Adadelta,
-        "Adagrad": optim.Adagrad,
-    }
-
-    if optimizer_type not in optimizer_map:
-        raise ValueError(
-            f"Unknown optimizer type: {optimizer_type}. "
-            f"Supported: {list(optimizer_map.keys())}"
-        )
-
-    optimizer_class = optimizer_map[optimizer_type]
-    return optimizer_class(parameters, **config)
+    config["lr"] = float(config["lr"])
+    return create_optimizer_v2(model, **config)
 
 
 def build_scheduler(

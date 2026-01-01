@@ -5,9 +5,9 @@ uv run python src/train.py \
   --config config/experiments/food101_mobilenet_v2.yaml\
   --validate
 
-uv run python src/train.py \
-  --config config/experiments/food101_efficientnet_b4.yaml\
-  --validate
+# uv run python src/train.py \
+#   --config config/experiments/food101_efficientnet_b4.yaml\
+#   --validate
 
 # uv run python src/validate.py \
 #  --config config/experiments/food101_efficientnet_b0.yaml\

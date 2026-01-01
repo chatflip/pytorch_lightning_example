@@ -62,16 +62,10 @@ class ImageClassifier(L.LightningModule):
             drop_path_rate=drop_path_rate,
         )
 
-        # 損失関数
         self.criterion = nn.CrossEntropyLoss()
 
-        # torchmetricsを使用したメトリクス
         self.train_acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1)
-        self.train_acc5 = MulticlassAccuracy(num_classes=num_classes, top_k=5)
         self.val_acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1)
-        self.val_acc5 = MulticlassAccuracy(num_classes=num_classes, top_k=5)
-        self.test_acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1)
-        self.test_acc5 = MulticlassAccuracy(num_classes=num_classes, top_k=5)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """モデルを通した順伝播.
@@ -100,20 +94,16 @@ class ImageClassifier(L.LightningModule):
         outputs = self(images)
         loss = self.criterion(outputs, targets)
 
-        # メトリクスを更新
         self.train_acc1(outputs, targets)
-        self.train_acc5(outputs, targets)
 
-        # ログ
-        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("train/loss", loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log(
-            "train_acc1",
+            "train/accuracy",
             self.train_acc1,
             on_step=True,
-            on_epoch=True,
+            on_epoch=False,
             prog_bar=True,
         )
-        self.log("train_acc5", self.train_acc5, on_step=False, on_epoch=True)
 
         return {"loss": loss}
 
@@ -130,36 +120,17 @@ class ImageClassifier(L.LightningModule):
         outputs = self(images)
         loss = self.criterion(outputs, targets)
 
-        # メトリクスを更新
         self.val_acc1(outputs, targets)
-        self.val_acc5(outputs, targets)
 
         # ログ
-        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val_acc1", self.val_acc1, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val_acc5", self.val_acc5, on_step=False, on_epoch=True)
-
-    def test_step(
-        self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
-    ) -> None:
-        """テストステップ.
-
-        Args:
-            batch: (画像, ターゲット)のタプル
-            batch_idx: バッチインデックス
-        """
-        images, targets = batch
-        outputs = self(images)
-        loss = self.criterion(outputs, targets)
-
-        # メトリクスを更新
-        self.test_acc1(outputs, targets)
-        self.test_acc5(outputs, targets)
-
-        # ログ
-        self.log("test_loss", loss, on_step=False, on_epoch=True)
-        self.log("test_acc1", self.test_acc1, on_step=False, on_epoch=True)
-        self.log("test_acc5", self.test_acc5, on_step=False, on_epoch=True)
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(
+            "val/accuracy",
+            self.val_acc1,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+        )
 
     def configure_optimizers(self) -> optim.Optimizer | OptimizerLRSchedulerConfig:
         """オプティマイザーと学習率スケジューラーを設定する.
@@ -167,18 +138,22 @@ class ImageClassifier(L.LightningModule):
         Returns:
             オプティマイザーまたはオプティマイザーとスケジューラーの設定
         """
-        optimizer_config = self._config.get("optimizer", {"type": "AdamW", "lr": 0.001})
+        optimizer_config = self._config.get("optimizer", {"opt": "adamw"}).copy()
+        model_config = self._config.get("model", {})
         scheduler_config = self._config.get("scheduler", None)
         trainer_config = self._config.get("trainer", {})
         max_epochs = trainer_config.get("max_epochs", 100)
 
-        # オプティマイザーを構築
-        optimizer = build_optimizer(optimizer_config, self.parameters())
+        lr = model_config.get("lr")
+        if lr is None:
+            raise ValueError("lr must be specified in model config")
+        optimizer_config["lr"] = lr
+
+        optimizer = build_optimizer(optimizer_config, self)
 
         if scheduler_config is None:
             return optimizer
 
-        # スケジューラーを構築
         scheduler = build_scheduler(scheduler_config, optimizer, max_epochs)
 
         return OptimizerLRSchedulerConfig(

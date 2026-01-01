@@ -1,8 +1,7 @@
 optimizer:
-  type: AdamW
-  lr: 0.001
+  opt: adamw
   weight_decay: 0.01
-  betas: [0.9, 0.999]
+  filter_bias_and_bn: true
 
 scheduler:
   type: CosineAnnealingLR
