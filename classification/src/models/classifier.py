@@ -106,7 +106,7 @@ class ImageClassifier(L.LightningModule):
 
         opt = self.optimizers()
         if opt is not None:
-            lr = opt.param_groups[0]["lr"]
+            lr = opt.param_groups[0]["lr"]  # type: ignore[possibly-missing-attribute]
             self.log("lr", lr, on_step=True, on_epoch=False, prog_bar=False)
 
         return {"loss": loss}
@@ -151,7 +151,10 @@ class ImageClassifier(L.LightningModule):
         model_config = self._config.get("model", {})
         scheduler_config = self._config.get("scheduler", None)
 
-        max_steps = self.trainer.estimated_stepping_batches
+        max_steps_raw = self.trainer.estimated_stepping_batches
+        max_steps: int | None = (
+            int(max_steps_raw) if max_steps_raw is not None else None
+        )
 
         lr = model_config.get("lr")
         if lr is None:

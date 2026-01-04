@@ -97,6 +97,37 @@ def build_optimizer(config: dict[str, Any], model: nn.Module) -> optim.Optimizer
     return create_optimizer_v2(model, **config)
 
 
+def _prepare_flat_cosine_config(
+    config: dict[str, Any],
+    max_steps: int,
+    max_epochs: int | None,
+) -> None:
+    """FlatCosineScheduler用の設定を準備する（in-placeで更新）.
+
+    Args:
+        config: スケジューラー設定辞書（更新される）
+        max_steps: 最大ステップ数（Noneでないことが保証されている）
+        max_epochs: 最大エポック数（エポック→ステップ変換に使用）
+    """
+    # total_stepsを自動設定
+    if "total_steps" not in config or config["total_steps"] is None:
+        config["total_steps"] = max_steps
+
+    # エポック→ステップ変換
+    if max_epochs is not None and max_epochs > 0:
+        steps_per_epoch = max_steps // max_epochs
+
+        # warmup_epochs → warmup_steps
+        if "warmup_epochs" in config:
+            warmup_epochs = config.pop("warmup_epochs")
+            config["warmup_steps"] = int(warmup_epochs * steps_per_epoch)
+
+        # flat_epochs → flat_steps
+        if "flat_epochs" in config:
+            flat_epochs = config.pop("flat_epochs")
+            config["flat_steps"] = int(flat_epochs * steps_per_epoch)
+
+
 def build_scheduler(
     config: dict[str, Any],
     optimizer: optim.Optimizer,
@@ -163,23 +194,6 @@ def build_scheduler(
     if scheduler_type == "FlatCosineScheduler":
         if max_steps is None:
             raise ValueError("max_steps is required for FlatCosineScheduler")
-
-        # total_stepsを自動設定
-        if "total_steps" not in config or config["total_steps"] is None:
-            config["total_steps"] = max_steps
-
-        # エポック→ステップ変換
-        if max_epochs is not None and max_epochs > 0:
-            steps_per_epoch = max_steps // max_epochs
-
-            # warmup_epochs → warmup_steps
-            if "warmup_epochs" in config:
-                warmup_epochs = config.pop("warmup_epochs")
-                config["warmup_steps"] = int(warmup_epochs * steps_per_epoch)
-
-            # flat_epochs → flat_steps
-            if "flat_epochs" in config:
-                flat_epochs = config.pop("flat_epochs")
-                config["flat_steps"] = int(flat_epochs * steps_per_epoch)
+        _prepare_flat_cosine_config(config, max_steps, max_epochs)
 
     return scheduler_class(optimizer, **config)
