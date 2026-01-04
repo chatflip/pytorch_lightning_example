@@ -58,7 +58,6 @@ def validate(
     model.to(device)
 
     acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1).to(device)
-    acc5 = MulticlassAccuracy(num_classes=num_classes, top_k=5).to(device)
     acc_per_class = MulticlassAccuracy(
         num_classes=num_classes, top_k=1, average=None
     ).to(device)
@@ -109,7 +108,6 @@ def validate(
             loss = F.cross_entropy(outputs, targets, reduction="sum")
 
             acc1.update(outputs, targets)
-            acc5.update(outputs, targets)
             acc_per_class.update(outputs, targets)
             prec_per_class.update(outputs, targets)
             recall_per_class.update(outputs, targets)
@@ -150,7 +148,6 @@ def validate(
     metrics = {
         "loss": total_loss / total_samples,
         "top1_accuracy": acc1.compute().item(),  # type: ignore[call-arg]
-        "top5_accuracy": acc5.compute().item(),  # type: ignore[call-arg]
         "total_samples": total_samples,
         "precision_macro": prec_macro.compute().item(),  # type: ignore[call-arg]
         "recall_macro": recall_macro.compute().item(),  # type: ignore[call-arg]
@@ -215,9 +212,6 @@ def save_metrics(metrics: dict[str, float], output_path: Path) -> None:
         writer.writerow({"metric": "loss", "value": f"{metrics['loss']:.4f}"})
         writer.writerow(
             {"metric": "top1_accuracy", "value": f"{metrics['top1_accuracy']:.4f}"}
-        )
-        writer.writerow(
-            {"metric": "top5_accuracy", "value": f"{metrics['top5_accuracy']:.4f}"}
         )
         writer.writerow(
             {"metric": "precision_macro", "value": f"{metrics['precision_macro']:.4f}"}
@@ -416,7 +410,6 @@ def run_validation(
     logger.info(f"  Total Samples: {metrics['total_samples']}")
     logger.info(f"  Loss: {metrics['loss']:.4f}")
     logger.info(f"  Top-1 Accuracy: {metrics['top1_accuracy'] * 100:.2f}%")
-    logger.info(f"  Top-5 Accuracy: {metrics['top5_accuracy'] * 100:.2f}%")
     logger.info("=" * 50)
 
     correct_count = sum(1 for p in predictions if p["correct"])
