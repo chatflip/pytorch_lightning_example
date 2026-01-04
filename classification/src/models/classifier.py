@@ -156,7 +156,7 @@ class ImageClassifier(L.LightningModule):
         lr = model_config.get("lr")
         if lr is None:
             raise ValueError("lr must be specified in model config")
-        optimizer_config["lr"] = lr
+        optimizer_config["lr"] = float(lr)
 
         optimizer = build_optimizer(optimizer_config, self)
 
@@ -164,6 +164,8 @@ class ImageClassifier(L.LightningModule):
             return optimizer
 
         min_lr = model_config.get("min_lr", 1e-6)
+        if min_lr is not None:
+            min_lr = float(min_lr)
         scheduler = build_scheduler(
             scheduler_config, optimizer, max_steps, self.trainer.max_epochs, min_lr
         )
