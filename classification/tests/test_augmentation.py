@@ -183,7 +183,7 @@ class TestModelConfigSizeOverride:
             ]
         }
         model_config = {"input_size": 380}
-        transform = build_transforms(config, model_config=model_config, is_train=True)
+        transform = build_transforms(config, model_config=model_config)
 
         assert isinstance(transform, A.Compose)
         assert isinstance(transform.transforms[0], A.RandomResizedCrop)
@@ -198,7 +198,7 @@ class TestModelConfigSizeOverride:
             ]
         }
         model_config = {"input_size": 380}
-        transform = build_transforms(config, model_config=model_config, is_train=False)
+        transform = build_transforms(config, model_config=model_config)
 
         assert isinstance(transform, A.Compose)
         assert isinstance(transform.transforms[0], A.CenterCrop)
@@ -214,7 +214,7 @@ class TestModelConfigSizeOverride:
             ]
         }
         model_config = {"input_size": 380}
-        transform = build_transforms(config, model_config=model_config, is_train=False)
+        transform = build_transforms(config, model_config=model_config)
 
         assert isinstance(transform, A.Compose)
         assert isinstance(transform.transforms[0], A.Resize)
@@ -232,7 +232,7 @@ class TestModelConfigSizeOverride:
             ]
         }
         model_config = {"input_size": 224}
-        transform = build_transforms(config, model_config=model_config, is_train=False)
+        transform = build_transforms(config, model_config=model_config)
 
         dummy_image = np.random.randint(0, 256, (300, 300, 3), dtype=np.uint8)
         result = transform(image=dummy_image)
