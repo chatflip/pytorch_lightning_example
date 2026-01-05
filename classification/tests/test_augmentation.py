@@ -182,7 +182,7 @@ class TestModelConfigSizeOverride:
                 {"type": "ToTensorV2"},
             ]
         }
-        model_config = {"input_size": 380, "crop_pct": 0.922}
+        model_config = {"input_size": 380}
         transform = build_transforms(config, model_config=model_config, is_train=True)
 
         assert isinstance(transform, A.Compose)
@@ -197,7 +197,7 @@ class TestModelConfigSizeOverride:
                 {"type": "ToTensorV2"},
             ]
         }
-        model_config = {"input_size": 380, "crop_pct": 0.922}
+        model_config = {"input_size": 380}
         transform = build_transforms(config, model_config=model_config, is_train=False)
 
         assert isinstance(transform, A.Compose)
@@ -206,21 +206,20 @@ class TestModelConfigSizeOverride:
         assert transform.transforms[0].width == 380
 
     def test_resize_size_from_model_config_val(self) -> None:
-        """Resizeでheight/width未指定時にcrop_pctから計算されたサイズが使用されることを確認."""
+        """Resizeでheight/width未指定時にinput_sizeが使用されることを確認."""
         config = {
             "ops": [
                 {"type": "Resize"},
                 {"type": "ToTensorV2"},
             ]
         }
-        model_config = {"input_size": 380, "crop_pct": 0.922}
-        # resize_size = ceil(380 / 0.922) = 413
+        model_config = {"input_size": 380}
         transform = build_transforms(config, model_config=model_config, is_train=False)
 
         assert isinstance(transform, A.Compose)
         assert isinstance(transform.transforms[0], A.Resize)
-        assert transform.transforms[0].height == 413
-        assert transform.transforms[0].width == 413
+        assert transform.transforms[0].height == 380
+        assert transform.transforms[0].width == 380
 
     def test_full_val_pipeline_from_model_config(self) -> None:
         """val用の完全なパイプラインがmodel_configから正しく構築されることを確認."""
@@ -232,7 +231,7 @@ class TestModelConfigSizeOverride:
                 {"type": "ToTensorV2"},
             ]
         }
-        model_config = {"input_size": 224, "crop_pct": 0.875}
+        model_config = {"input_size": 224}
         transform = build_transforms(config, model_config=model_config, is_train=False)
 
         dummy_image = np.random.randint(0, 256, (300, 300, 3), dtype=np.uint8)

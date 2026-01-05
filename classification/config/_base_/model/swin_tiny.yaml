@@ -6,4 +6,3 @@ model:
   drop_rate: 0.0
   drop_path_rate: 0.0
   input_size: 224
-  crop_pct: 0.9

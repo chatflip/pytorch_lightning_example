@@ -5,5 +5,4 @@ model:
   pretrained: true
   drop_rate: 0.0
   drop_path_rate: 0.0
-  input_size: 380
-  crop_pct: 0.922
+  input_size: 384
