@@ -1,16 +1,49 @@
 import argparse
+import datetime
+import json
 from pathlib import Path
 from typing import Any
 
+import mlflow
 import numpy as np
 import onnx
 import onnxruntime as ort
 import onnxsim
 import torch
+import torch.nn as nn
 from loguru import logger
 
 from config import load_config
 from models import ImageClassifier
+
+
+class ModelWithSoftmax(nn.Module):
+    """Softmax付きモデルラッパー.
+
+    推論時に確率（0-1）を出力するためにSoftmaxを追加する。
+    """
+
+    def __init__(self, model: torch.nn.Module) -> None:
+        """ModelWithSoftmaxを初期化する.
+
+        Args:
+            model: 元のPyTorchモデル
+        """
+        super().__init__()
+        self.model = model
+        self.softmax = torch.nn.Softmax(dim=-1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """順伝播（Softmax付き）.
+
+        Args:
+            x: 入力テンソル
+
+        Returns:
+            Softmax適用後の確率テンソル（0-1）
+        """
+        logits = self.model(x)
+        return self.softmax(logits)
 
 
 def find_best_checkpoint(checkpoint_dir: Path) -> Path:
@@ -139,8 +172,11 @@ def _verify_with_onnxruntime(
     ort_outputs = session.run(None, ort_inputs)
     ort_output = np.asarray(ort_outputs[0])
 
+    model_with_softmax = ModelWithSoftmax(pytorch_model)
+    model_with_softmax.eval()
+
     with torch.no_grad():
-        pytorch_outputs = pytorch_model(dummy_input).numpy()
+        pytorch_outputs = model_with_softmax(dummy_input).numpy()
 
     max_diff = np.abs(ort_output - pytorch_outputs).max()
     mean_diff = np.abs(ort_output - pytorch_outputs).mean()
@@ -169,6 +205,7 @@ def export_onnx(
     dynamic_batch: bool = True,
     simplify: bool = False,
     verify: bool = True,
+    created_by: str = "unknown",
 ) -> Path:
     """モデルをONNX形式でエクスポートする.
 
@@ -183,6 +220,7 @@ def export_onnx(
         dynamic_batch: 動的バッチサイズを有効にするか
         simplify: ONNXモデルを簡略化するか（onnx-simplifier必要）
         verify: エクスポート後にモデルを検証するか
+        created_by: メタデータに記録する作成者名
 
     Returns:
         出力ONNXファイルのパス
@@ -215,7 +253,7 @@ def export_onnx(
     logger.info(f"Dummy input shape: {dummy_input.shape}")
 
     dynamic_axes = (
-        {"input": {0: "batch_size"}, "output": {0: "batch_size"}}
+        {"images": {0: "batch_size"}, "output": {0: "batch_size"}}
         if dynamic_batch
         else None
     )
@@ -230,6 +268,11 @@ def export_onnx(
         _simplify_onnx_model(output_file)
     if verify:
         _verify_with_onnxruntime(output_file, dummy_input, model)
+
+    _write_onnx_metadata(output_file, config, run_id, created_by)
+
+    if run_id is not None:
+        _log_onnx_to_mlflow(run_id, output_file, config)
 
     logger.info("Done!")
     return output_file
@@ -252,8 +295,13 @@ def _export_to_onnx(
         dynamic_axes: 動的軸の設定
     """
     logger.info(f"Exporting to ONNX (opset_version={opset_version})...")
+
+    # Softmaxを追加したモデルをエクスポート（出力が0-1の確率になる）
+    model_with_softmax = ModelWithSoftmax(model)
+    model_with_softmax.eval()
+
     torch.onnx.export(
-        model,
+        model_with_softmax,
         (dummy_input,),
         str(output_file),
         export_params=True,
@@ -262,8 +310,9 @@ def _export_to_onnx(
         input_names=["input"],
         output_names=["output"],
         dynamic_axes=dynamic_axes,
+        dynamo=False,
     )
-    logger.info(f"ONNX model exported to: {output_file}")
+    logger.info(f"ONNX model exported to: {output_file} (with Softmax)")
 
 
 def _verify_onnx_model(output_file: Path, config: dict[str, Any]) -> None:
@@ -278,6 +327,201 @@ def _verify_onnx_model(output_file: Path, config: dict[str, Any]) -> None:
     onnx.checker.check_model(onnx_model)
     logger.info("ONNX model verification passed!")
     _print_model_info(onnx_model, config)
+
+
+def _log_onnx_to_mlflow(run_id: str, onnx_path: Path, config: dict[str, Any]) -> None:
+    """ONNXモデルをMLflowのartifactとしてログする.
+
+    Args:
+        run_id: MLflowのrun_id
+        onnx_path: ONNXファイルのパス
+        config: 設定辞書
+    """
+    logger.info(f"Logging ONNX model to MLflow (run_id={run_id})...")
+
+    logger_config = config.get("logger", {})
+    tracking_uri = logger_config.get("tracking_uri", "mlruns")
+    mlflow.set_tracking_uri(tracking_uri)  # type: ignore[attr-defined]
+
+    with mlflow.start_run(run_id=run_id):  # type: ignore[attr-defined]
+        mlflow.log_artifact(str(onnx_path), artifact_path="onnx")  # type: ignore[attr-defined]
+
+    logger.info(f"ONNX model logged to MLflow artifact: onnx/{onnx_path.name}")
+
+
+def _get_category_names(config: dict[str, Any]) -> list[str]:
+    """データセットからカテゴリ名を取得する.
+
+    Args:
+        config: 設定辞書
+
+    Returns:
+        カテゴリ名のリスト（ソート済み）
+
+    Raises:
+        KeyError: data.dataset_rootが設定に存在しない場合
+        FileNotFoundError: trainディレクトリが存在しない場合
+    """
+    dataset_root = Path(config["data"]["dataset_root"])
+    train_dir = dataset_root / "train"
+
+    if not train_dir.exists():
+        raise FileNotFoundError(f"Train directory not found: {train_dir}")
+
+    categories = sorted([d.name for d in train_dir.iterdir() if d.is_dir()])
+    if not categories:
+        raise ValueError(f"No category directories found in: {train_dir}")
+
+    return categories
+
+
+def _get_best_accuracy_from_mlflow(
+    run_id: str | None, config: dict[str, Any]
+) -> float | None:
+    """MLflowからbest accuracyを取得する.
+
+    Args:
+        run_id: MLflowのrun_id
+        config: 設定辞書
+
+    Returns:
+        best accuracy（取得できない場合はNone）
+    """
+    if run_id is None:
+        return None
+
+    try:
+        logger_config = config.get("logger", {})
+        tracking_uri = logger_config.get("tracking_uri", "mlruns")
+        mlflow.set_tracking_uri(tracking_uri)  # type: ignore[attr-defined]
+
+        run = mlflow.get_run(run_id)  # type: ignore[attr-defined]
+        metrics = run.data.metrics
+
+        for metric_name in [
+            "metrics/top1/val",
+            "val_accuracy",
+            "best_val_acc",
+            "accuracy",
+        ]:
+            if metric_name in metrics:
+                return metrics[metric_name]
+
+        return None
+    except Exception as e:
+        logger.warning(f"Failed to get accuracy from MLflow: {e}")
+        return None
+
+
+def _get_preprocess_info(config: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
+    """前処理情報を設定から取得する.
+
+    Args:
+        config: 設定辞書
+
+    Returns:
+        (前処理名リスト, 正規化パラメータ辞書)のタプル
+
+    Raises:
+        KeyError: augmentation.val.opsが設定に存在しない場合
+        ValueError: Normalize設定にmean/stdが存在しない場合
+    """
+    val_ops = config["augmentation"]["val"]["ops"]
+
+    preprocess_names = []
+    normalize_params: dict[str, Any] = {}
+
+    for op in val_ops:
+        op_type = op["type"]
+        preprocess_names.append(op_type)
+
+        if op_type == "Normalize":
+            if "mean" not in op or "std" not in op:
+                raise ValueError("Normalize op must have 'mean' and 'std' fields")
+            normalize_params = {
+                "mean": op["mean"],
+                "std": op["std"],
+                "max_pixel_value": 255.0,
+            }
+
+    if not normalize_params:
+        raise ValueError("No Normalize op found in augmentation.val.ops")
+
+    return preprocess_names, normalize_params
+
+
+def _set_model_metadata(model: onnx.ModelProto, props: dict[str, str]) -> None:
+    """ONNXモデルにメタデータを設定する.
+
+    Args:
+        model: ONNXモデル
+        props: メタデータのkey-valueペア
+    """
+    # 既存のメタデータをクリア
+    while model.metadata_props:
+        model.metadata_props.pop()
+
+    # 新しいメタデータを追加
+    for key, value in props.items():
+        meta = model.metadata_props.add()
+        meta.key = key
+        meta.value = value
+
+
+def _write_onnx_metadata(
+    onnx_path: Path,
+    config: dict[str, Any],
+    run_id: str | None = None,
+    created_by: str = "unknown",
+) -> None:
+    """ONNXモデルにメタデータを書き込む.
+
+    Args:
+        onnx_path: ONNXファイルのパス
+        config: 設定辞書
+        run_id: MLflowのrun_id（精度取得用）
+        created_by: 作成者名
+
+    Raises:
+        KeyError: 必要な設定が存在しない場合
+    """
+    logger.info("Writing metadata to ONNX model...")
+
+    model = onnx.load(str(onnx_path))
+    props = {p.key: p.value for p in model.metadata_props}
+    props["created_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    props["created_by"] = created_by
+
+    category_names = _get_category_names(config)
+    props["category_names"] = json.dumps({"images": category_names}, indent=1)
+
+    data_config = config["data"]
+    dataset_root = Path(data_config["dataset_root"])
+    props["dataset_name"] = dataset_root.name
+
+    accuracy = _get_best_accuracy_from_mlflow(run_id, config)
+    if accuracy is not None:
+        props["accuracy"] = f"{accuracy:.4f}"
+    props["accuracy_detail"] = json.dumps({}, indent=1)
+
+    props["process_type"] = "classification"
+    props["process_version"] = "0.0.1"
+
+    preprocess_names, normalize_params = _get_preprocess_info(config)
+    props["preprocess"] = json.dumps(preprocess_names, indent=1)
+    props["normalize"] = json.dumps(normalize_params, indent=1)
+    _set_model_metadata(model, props)
+
+    onnx.save(model, str(onnx_path))
+    logger.info("Metadata written successfully!")
+
+    logger.info("Written metadata:")
+    for key, value in props.items():
+        if value.startswith("{") or value.startswith("["):
+            display_value = value.replace("\n", " ")[:50] + "..."
+        else:
+            display_value = value
+        logger.info(f"  {key}: {display_value}")
 
 
 if __name__ == "__main__":
@@ -334,7 +578,7 @@ if __name__ == "__main__":
         help="Disable dynamic batch size",
     )
     parser.add_argument(
-        "--simplify",
+        "--no-simplify",
         action="store_true",
         help="Simplify ONNX model (requires onnx-simplifier)",
     )
@@ -342,6 +586,12 @@ if __name__ == "__main__":
         "--no-verify",
         action="store_true",
         help="Skip ONNX model verification",
+    )
+    parser.add_argument(
+        "--created-by",
+        type=str,
+        default="unknown",
+        help="Creator name for metadata (default: unknown)",
     )
 
     args = parser.parse_args()
@@ -355,6 +605,7 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         opset_version=args.opset_version,
         dynamic_batch=not args.no_dynamic_batch,
-        simplify=args.simplify,
+        simplify=not args.no_simplify,
         verify=not args.no_verify,
+        created_by=args.created_by,
     )
