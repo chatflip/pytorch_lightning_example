@@ -35,14 +35,14 @@ class ImageClassifier(L.LightningModule):
         self.save_hyperparameters(config)
         object.__setattr__(self, "_config", config)
 
-        model_config = config.get("model", {})
-        data_config = config.get("data", {})
+        model_config = config["model"]
+        data_config = config["data"]
 
-        model_name = model_config.get("name", "efficientnet_b0")
+        model_name = model_config["name"]
+        num_classes = data_config["num_classes"]
         pretrained = model_config.get("pretrained", True)
         drop_rate = model_config.get("drop_rate", 0.0)
         drop_path_rate = model_config.get("drop_path_rate", 0.0)
-        num_classes = data_config.get("num_classes", 1000)
 
         self.model = timm.create_model(
             model_name=model_name,
@@ -52,7 +52,6 @@ class ImageClassifier(L.LightningModule):
             drop_path_rate=drop_path_rate,
         )
 
-        # 損失関数を構築
         loss_config = config.get("loss", {"type": "cross_entropy"})
         class_counts = data_config.get("class_counts", None)
         self.criterion = build_loss(loss_config, class_counts)
@@ -147,28 +146,22 @@ class ImageClassifier(L.LightningModule):
         Returns:
             オプティマイザーまたはオプティマイザーとスケジューラーの設定
         """
-        optimizer_config = self._config.get("optimizer", {"opt": "adamw"}).copy()
-        model_config = self._config.get("model", {})
-        scheduler_config = self._config.get("scheduler", None)
+        optimizer_config = self._config["optimizer"].copy()
+        model_config = self._config["model"]
+        scheduler_config = self._config["scheduler"]
 
         max_steps_raw = self.trainer.estimated_stepping_batches
         max_steps: int | None = (
             int(max_steps_raw) if max_steps_raw is not None else None
         )
 
-        lr = model_config.get("lr")
-        if lr is None:
-            raise ValueError("lr must be specified in model config")
-        optimizer_config["lr"] = float(lr)
-
+        optimizer_config["lr"] = float(model_config["lr"])
         optimizer = build_optimizer(optimizer_config, self)
 
         if scheduler_config is None:
             return optimizer
 
-        min_lr = model_config.get("min_lr", 1e-6)
-        if min_lr is not None:
-            min_lr = float(min_lr)
+        min_lr = float(model_config["min_lr"])
         scheduler = build_scheduler(
             scheduler_config, optimizer, max_steps, self.trainer.max_epochs, min_lr
         )

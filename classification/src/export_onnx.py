@@ -143,8 +143,6 @@ def _print_model_info(onnx_model: onnx.ModelProto, config: dict[str, Any]) -> No
         shape = [dim.dim_value or dim.dim_param for dim in dims]
         logger.info(f"  Output: {out.name}, shape={shape}")
 
-    num_classes = config.get("data", {}).get("num_classes", "unknown")
-    logger.info(f"  Number of classes: {num_classes}")
     logger.info("=" * 50)
 
 
@@ -229,7 +227,7 @@ def export_onnx(
     config = load_config(config_path)
 
     base_output_dir = Path(config.get("output_dir", "./outputs"))
-    exp_name = config.get("exp_name", "default")
+    exp_name = config["exp_name"]
 
     checkpoint_path, exp_dir = _resolve_checkpoint_path(
         checkpoint, run_id, base_output_dir, exp_name
@@ -237,7 +235,7 @@ def export_onnx(
 
     model_config = config.get("model", {})
     if input_size is None:
-        input_size = model_config.get("input_size", 224)
+        input_size = model_config["input_size"]
     logger.info(f"Input size: {input_size}x{input_size}")
 
     output_file = Path(output_path) if output_path else exp_dir / f"{exp_name}.onnx"

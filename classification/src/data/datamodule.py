@@ -39,15 +39,15 @@ class ClassificationDataModule(L.LightningDataModule):
         """
         super().__init__()
         self.config = config
-        self.data_config = config.get("data", {})
-        self.aug_config = config.get("augmentation", {})
-        self.model_config = config.get("model", {})
+        self.data_config = config["data"]
+        self.aug_config = config["augmentation"]
+        self.model_config = config["model"]
 
-        self.dataset_root = Path(self.data_config.get("dataset_root", "./datasets"))
-        self.batch_size = self.data_config.get("batch_size", 32)
-        self.num_workers = self.data_config.get("num_workers", os.cpu_count() or 4)
+        self.dataset_root = Path(self.data_config["dataset_root"])
+        self.batch_size = self.data_config["batch_size"]
+        self.color_order = self.data_config["color_order"]
+        self.num_workers = self.data_config.get("num_workers", os.cpu_count())
         self.pin_memory = self.data_config.get("pin_memory", True)
-        self.color_order = self.data_config.get("color_order", "rgb")
 
         self.train_transform = None
         self.val_transform = None
@@ -144,19 +144,8 @@ class ClassificationDataModule(L.LightningDataModule):
     @property
     def num_classes(self) -> int:
         """クラス数を返す."""
-        num_classes = self.data_config.get("num_classes")
-        if num_classes is not None:
-            return num_classes
-
-        if self.train_dataset is not None:
-            return self.train_dataset.num_classes
-        if self.val_dataset is not None:
-            return self.val_dataset.num_classes
-
-        raise RuntimeError(
-            "Cannot determine num_classes. "
-            "Call setup() first or set data.num_classes in config."
-        )
+        num_classes = self.data_config["num_classes"]
+        return int(num_classes)
 
     @property
     def classes(self) -> list[str]:

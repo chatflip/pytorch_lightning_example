@@ -355,8 +355,8 @@ def run_validation(
     logger.info(f"Loading config from: {config_path}")
     config = load_config(config_path)
 
-    base_output_dir = Path(config.get("output_dir", "./outputs"))
-    exp_name = config.get("exp_name", "default")
+    base_output_dir = Path(config["output_dir"])
+    exp_name = config["exp_name"]
 
     if checkpoint is not None:
         checkpoint_path = Path(checkpoint)
@@ -380,7 +380,7 @@ def run_validation(
     result_output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Output directory: {result_output_dir}")
 
-    seed = config.get("seed", 42)
+    seed = config["seed"]
     L.seed_everything(seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -393,7 +393,7 @@ def run_validation(
     logger.info(f"Loading model from checkpoint: {checkpoint_path}")
     model = ImageClassifier.load_from_checkpoint(checkpoint_path, config=config)
 
-    num_classes = config.get("data", {}).get("num_classes", datamodule.num_classes)
+    num_classes = config["data"]["num_classes"]
     classes = datamodule.classes
     logger.info(f"Number of classes: {num_classes}")
 

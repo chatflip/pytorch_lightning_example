@@ -136,7 +136,7 @@ def run_training(
     """
     config = load_config(config_path)
 
-    seed = config.get("seed", 42)
+    seed = config["seed"]
     L.seed_everything(seed, workers=True)
 
     output_dir = config.get("output_dir", "./outputs")

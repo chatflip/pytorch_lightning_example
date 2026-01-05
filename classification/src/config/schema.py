@@ -381,7 +381,7 @@ def validate_checkpoint_from_config(config: dict) -> CheckpointConfig:
     Raises:
         ConfigValidationError: バリデーションエラーが発生した場合
     """
-    return validate_checkpoint_config(config.get("checkpoint", {}))
+    return validate_checkpoint_config(config["checkpoint"])
 
 
 def validate_progress_bar_from_config(config: dict) -> ProgressBarConfig:
@@ -396,7 +396,7 @@ def validate_progress_bar_from_config(config: dict) -> ProgressBarConfig:
     Raises:
         ConfigValidationError: バリデーションエラーが発生した場合
     """
-    return validate_progress_bar_config(config.get("progress_bar", {}))
+    return validate_progress_bar_config(config["progress_bar"])
 
 
 def validate_trainer_from_config(config: dict) -> TrainerConfig:
@@ -411,7 +411,7 @@ def validate_trainer_from_config(config: dict) -> TrainerConfig:
     Raises:
         ConfigValidationError: バリデーションエラーが発生した場合
     """
-    return validate_trainer_config(config.get("trainer", {}))
+    return validate_trainer_config(config["trainer"])
 
 
 def validate_logger_config(config: dict) -> LoggerConfig:
@@ -472,7 +472,7 @@ def validate_loss_from_config(config: dict) -> LossConfig:
     Raises:
         ConfigValidationError: バリデーションエラーが発生した場合
     """
-    return validate_loss_config(config.get("loss", {}))
+    return validate_loss_config(config["loss"])
 
 
 def validate_transform_config(config: dict) -> TransformConfig:

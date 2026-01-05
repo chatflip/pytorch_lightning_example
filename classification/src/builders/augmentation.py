@@ -39,7 +39,7 @@ def build_transforms(
     input_size: int | None = None
 
     if model_config:
-        input_size = model_config.get("input_size")
+        input_size = model_config["input_size"]
 
     for i, op_config in enumerate(transform_cfg.ops):
         try:
