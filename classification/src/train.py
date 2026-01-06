@@ -150,7 +150,12 @@ def run_training(
     exp_dir = setup_output_dir(config, run_id)
     logger.info(f"Experiment directory: {exp_dir}")
 
-    save_config(config, exp_dir / "config.yaml")
+    config_path_saved = exp_dir / "config.yaml"
+    save_config(config, config_path_saved)
+
+    if isinstance(pl_logger, MLFlowLogger):
+        pl_logger.experiment.log_artifact(pl_logger.run_id, str(config_path_saved))
+        logger.info("Saved merged config as MLflow artifact")
 
     if hasattr(pl_logger, "log_hyperparams"):
         pl_logger.log_hyperparams(config)
