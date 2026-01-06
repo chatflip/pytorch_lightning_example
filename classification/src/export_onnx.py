@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import json
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -11,10 +12,40 @@ import onnxruntime as ort
 import onnxsim
 import torch
 import torch.nn as nn
+import yaml
 from loguru import logger
 
-from config import load_config
 from models import ImageClassifier
+
+
+def _load_config_from_artifact(run_id: str) -> dict[str, Any]:
+    """MLflowのartifactからconfig.yamlをダウンロードして読み込む.
+
+    Args:
+        run_id: MLflowのrun_id
+
+    Returns:
+        復元されたconfig辞書
+
+    Raises:
+        FileNotFoundError: config.yamlがartifactに存在しない場合
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        try:
+            local_path = mlflow.artifacts.download_artifacts(  # type: ignore[possibly-missing-attribute]
+                run_id=run_id,
+                artifact_path="config.yaml",
+                dst_path=tmp_dir,
+            )
+            config_path = Path(local_path)
+            with open(config_path) as f:
+                config = yaml.safe_load(f)
+            logger.info(f"Loaded config from MLflow artifact: {run_id}/config.yaml")
+            return config
+        except Exception as e:
+            raise FileNotFoundError(
+                f"Failed to download config.yaml from MLflow artifacts: {e}"
+            ) from e
 
 
 class ModelWithSoftmax(nn.Module):
@@ -193,12 +224,10 @@ def _verify_with_onnxruntime(
 
 
 def export_onnx(
-    config_path: str,
+    tracking_uri: str,
+    run_id: str,
     checkpoint: str | None = None,
-    run_id: str | None = None,
     output_path: str | None = None,
-    input_size: int | None = None,
-    batch_size: int = 1,
     opset_version: int = 18,
     dynamic_batch: bool = True,
     simplify: bool = False,
@@ -207,13 +236,13 @@ def export_onnx(
 ) -> Path:
     """モデルをONNX形式でエクスポートする.
 
+    MLflowのrunからconfigを取得し、モデルをONNX形式でエクスポートします。
+
     Args:
-        config_path: 設定ファイルのパス
+        tracking_uri: MLflowのトラッキングURI
+        run_id: MLflow run_id（configとチェックポイントの取得に使用）
         checkpoint: チェックポイントファイルのパス（省略時は自動検出）
-        run_id: MLflow run_id（checkpointが指定されていない場合に必要）
         output_path: 出力ONNXファイルのパス（省略時は自動生成）
-        input_size: 入力画像サイズ（省略時は設定から取得）
-        batch_size: バッチサイズ（動的バッチの場合はダミー入力用）
         opset_version: ONNXのopsetバージョン
         dynamic_batch: 動的バッチサイズを有効にするか
         simplify: ONNXモデルを簡略化するか（onnx-simplifier必要）
@@ -223,8 +252,8 @@ def export_onnx(
     Returns:
         出力ONNXファイルのパス
     """
-    logger.info(f"Loading config from: {config_path}")
-    config = load_config(config_path)
+    mlflow.set_tracking_uri(tracking_uri)
+    config = _load_config_from_artifact(run_id)
 
     base_output_dir = Path(config.get("output_dir", "./outputs"))
     exp_name = config["exp_name"]
@@ -233,9 +262,7 @@ def export_onnx(
         checkpoint, run_id, base_output_dir, exp_name
     )
 
-    model_config = config.get("model", {})
-    if input_size is None:
-        input_size = model_config["input_size"]
+    input_size = config["model"]["input_size"]
     logger.info(f"Input size: {input_size}x{input_size}")
 
     output_file = Path(output_path) if output_path else exp_dir / f"{exp_name}.onnx"
@@ -247,7 +274,7 @@ def export_onnx(
     model.eval()
     model = model.to(torch.device("cpu"))
 
-    dummy_input = torch.randn(batch_size, 3, input_size, input_size)
+    dummy_input = torch.randn(1, 3, input_size, input_size)
     logger.info(f"Dummy input shape: {dummy_input.shape}")
 
     dynamic_axes = (
@@ -294,7 +321,6 @@ def _export_to_onnx(
     """
     logger.info(f"Exporting to ONNX (opset_version={opset_version})...")
 
-    # Softmaxを追加したモデルをエクスポート（出力が0-1の確率になる）
     model_with_softmax = ModelWithSoftmax(model)
     model_with_softmax.eval()
 
@@ -395,17 +421,8 @@ def _get_best_accuracy_from_mlflow(
 
         run = mlflow.get_run(run_id)  # type: ignore[attr-defined]
         metrics = run.data.metrics
+        return metrics["metrics/top1/val"]
 
-        for metric_name in [
-            "metrics/top1/val",
-            "val_accuracy",
-            "best_val_acc",
-            "accuracy",
-        ]:
-            if metric_name in metrics:
-                return metrics[metric_name]
-
-        return None
     except Exception as e:
         logger.warning(f"Failed to get accuracy from MLflow: {e}")
         return None
@@ -455,11 +472,9 @@ def _set_model_metadata(model: onnx.ModelProto, props: dict[str, str]) -> None:
         model: ONNXモデル
         props: メタデータのkey-valueペア
     """
-    # 既存のメタデータをクリア
     while model.metadata_props:
         model.metadata_props.pop()
 
-    # 新しいメタデータを追加
     for key, value in props.items():
         meta = model.metadata_props.add()
         meta.key = key
@@ -527,42 +542,16 @@ if __name__ == "__main__":
         description="Export PyTorch Lightning model to ONNX format"
     )
     parser.add_argument(
-        "-c",
-        "--config",
+        "--tracking-uri",
         type=str,
-        required=True,
-        help="Path to config file",
-    )
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        default=None,
-        help="Path to checkpoint file (auto-detected if not specified)",
+        default="sqlite:///mlflow.db",
+        help="MLflow tracking URI",
     )
     parser.add_argument(
         "--run-id",
         type=str,
         default=None,
         help="MLflow run_id (required if --checkpoint is not specified)",
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        type=str,
-        default=None,
-        help="Output ONNX file path (default: {exp_dir}/{exp_name}.onnx)",
-    )
-    parser.add_argument(
-        "--input-size",
-        type=int,
-        default=None,
-        help="Input image size (default: from config)",
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=1,
-        help="Batch size for dummy input (default: 1)",
     )
     parser.add_argument(
         "--opset-version",
@@ -593,14 +582,9 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
     export_onnx(
-        config_path=args.config,
-        checkpoint=args.checkpoint,
+        tracking_uri=args.tracking_uri,
         run_id=args.run_id,
-        output_path=args.output,
-        input_size=args.input_size,
-        batch_size=args.batch_size,
         opset_version=args.opset_version,
         dynamic_batch=not args.no_dynamic_batch,
         simplify=not args.no_simplify,
