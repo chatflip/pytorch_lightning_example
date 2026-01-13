@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import pytorch_lightning as L
+import torch
 from loguru import logger
 from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.loggers import Logger as PLLogger
@@ -134,6 +135,8 @@ def run_training(
         resume: 再開するチェックポイントのパス
         validate: トレーニング後に検証を実行するかどうか
     """
+    torch.set_float32_matmul_precision("medium")
+
     config = load_config(config_path)
 
     seed = config["seed"]
