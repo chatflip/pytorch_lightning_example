@@ -55,11 +55,13 @@ class ClassificationDataModule(L.LightningDataModule):
             self.train_transform = build_transforms(
                 self.aug_config["train"],
                 model_config=self.model_config,
+                is_train=True,
             )
         if "val" in self.aug_config:
             self.val_transform = build_transforms(
                 self.aug_config["val"],
                 model_config=self.model_config,
+                is_train=False,
             )
 
         self.train_dataset: ImageFolderDataset | None = None
