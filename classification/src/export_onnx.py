@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import json
+import math
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -263,7 +264,11 @@ def export_onnx(
     )
 
     input_size = config["model"]["input_size"]
+    crop_pct = config["model"].get("crop_pct", 0.875)
+    resize_size = int(math.ceil(input_size / crop_pct))
     logger.info(f"Input size: {input_size}x{input_size}")
+    logger.info(f"Crop percentage: {crop_pct}")
+    logger.info(f"Validation resize size: {resize_size}x{resize_size}")
 
     output_file = Path(output_path) if output_path else exp_dir / f"{exp_name}.onnx"
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -274,7 +279,7 @@ def export_onnx(
     model.eval()
     model = model.to(torch.device("cpu"))
 
-    dummy_input = torch.randn(1, 3, input_size, input_size)
+    dummy_input = torch.randn(1, 3, resize_size, resize_size)
     logger.info(f"Dummy input shape: {dummy_input.shape}")
 
     dynamic_axes = (
