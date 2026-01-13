@@ -135,7 +135,7 @@ def run_training(
         resume: 再開するチェックポイントのパス
         validate: トレーニング後に検証を実行するかどうか
     """
-    torch.set_float32_matmul_precision("medium")
+    torch.set_float32_matmul_precision("high")
 
     config = load_config(config_path)
 
