@@ -175,51 +175,52 @@ class TestModelConfigSizeOverride:
     """model_configからサイズを自動設定するテスト."""
 
     def test_random_resized_crop_size_from_model_config(self) -> None:
-        """RandomResizedCropでheight/width未指定時にmodel_configから取得されることを確認."""
+        """RandomResizedCropでheight/width未指定時に学習時はinput_sizeが使用されることを確認."""
         config = {
             "ops": [
                 {"type": "RandomResizedCrop", "scale": [0.08, 1.0], "ratio": [0.75, 1.333]},
                 {"type": "ToTensorV2"},
             ]
         }
-        model_config = {"input_size": 380}
-        transform = build_transforms(config, model_config=model_config)
+        model_config = {"input_size": 380, "test_input_size": 413}
+        transform = build_transforms(config, model_config=model_config, is_train=True)
 
         assert isinstance(transform, A.Compose)
         assert isinstance(transform.transforms[0], A.RandomResizedCrop)
+        # 学習時はinput_sizeが使われる
         assert transform.transforms[0].size == (380, 380)
 
     def test_center_crop_size_from_model_config(self) -> None:
-        """CenterCropでheight/width未指定時にmodel_configから取得されることを確認."""
+        """CenterCropでheight/width未指定時に検証時はtest_input_sizeが使用されることを確認."""
         config = {
             "ops": [
                 {"type": "CenterCrop"},
                 {"type": "ToTensorV2"},
             ]
         }
-        model_config = {"input_size": 380}
-        transform = build_transforms(config, model_config=model_config)
+        model_config = {"input_size": 380, "test_input_size": 413}
+        transform = build_transforms(config, model_config=model_config, is_train=False)
 
         assert isinstance(transform, A.Compose)
         assert isinstance(transform.transforms[0], A.CenterCrop)
-        assert transform.transforms[0].height == 380
-        assert transform.transforms[0].width == 380
+        assert transform.transforms[0].height == 413
+        assert transform.transforms[0].width == 413
 
     def test_resize_size_from_model_config_val(self) -> None:
-        """Resizeでheight/width未指定時にinput_sizeが使用されることを確認."""
+        """Resizeでheight/width未指定時にtest_input_sizeが使用されることを確認."""
         config = {
             "ops": [
                 {"type": "Resize"},
                 {"type": "ToTensorV2"},
             ]
         }
-        model_config = {"input_size": 380}
-        transform = build_transforms(config, model_config=model_config)
+        model_config = {"input_size": 380, "test_input_size": 413}
+        transform = build_transforms(config, model_config=model_config, is_train=False)
 
         assert isinstance(transform, A.Compose)
         assert isinstance(transform.transforms[0], A.Resize)
-        assert transform.transforms[0].height == 380
-        assert transform.transforms[0].width == 380
+        assert transform.transforms[0].height == 413
+        assert transform.transforms[0].width == 413
 
     def test_full_val_pipeline_from_model_config(self) -> None:
         """val用の完全なパイプラインがmodel_configから正しく構築されることを確認."""
@@ -231,14 +232,15 @@ class TestModelConfigSizeOverride:
                 {"type": "ToTensorV2"},
             ]
         }
-        model_config = {"input_size": 224}
-        transform = build_transforms(config, model_config=model_config)
+        model_config = {"input_size": 224, "test_input_size": 256}
+        transform = build_transforms(config, model_config=model_config, is_train=False)
 
         dummy_image = np.random.randint(0, 256, (300, 300, 3), dtype=np.uint8)
         result = transform(image=dummy_image)
 
         assert "image" in result
-        assert result["image"].shape == (3, 224, 224)
+        # 検証時はtest_input_sizeが使われるため、ResizeとCenterCropの両方が256になる
+        assert result["image"].shape == (3, 256, 256)
 
 
 class TestErrorHandling:
@@ -272,6 +274,21 @@ class TestErrorHandling:
             build_transforms(config)
 
         assert "height/widthが未指定" in str(exc_info.value)
+
+    def test_missing_test_input_size_for_val_raises_error(self) -> None:
+        """val用のパイプラインでtest_input_sizeが未指定の場合にエラーが発生することを確認."""
+        config = {
+            "ops": [
+                {"type": "Resize"},
+                {"type": "ToTensorV2"},
+            ]
+        }
+        model_config = {"input_size": 224}
+
+        with pytest.raises(ConfigValidationError) as exc_info:
+            build_transforms(config, model_config=model_config, is_train=False)
+
+        assert "test_input_sizeは必須です" in str(exc_info.value)
 
 
 if __name__ == "__main__":

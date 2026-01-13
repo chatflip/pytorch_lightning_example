@@ -262,9 +262,6 @@ def export_onnx(
         checkpoint, run_id, base_output_dir, exp_name
     )
 
-    input_size = config["model"]["input_size"]
-    logger.info(f"Input size: {input_size}x{input_size}")
-
     output_file = Path(output_path) if output_path else exp_dir / f"{exp_name}.onnx"
     output_file.parent.mkdir(parents=True, exist_ok=True)
     logger.info(f"Output path: {output_file}")
@@ -274,7 +271,12 @@ def export_onnx(
     model.eval()
     model = model.to(torch.device("cpu"))
 
-    dummy_input = torch.randn(1, 3, input_size, input_size)
+    if "test_input_size" not in config.get("model", {}):
+        raise ValueError(
+            "test_input_sizeは必須です。config.model.test_input_sizeを設定してください。"
+        )
+    test_input_size = int(config["model"]["test_input_size"])
+    dummy_input = torch.randn(1, 3, test_input_size, test_input_size)
     logger.info(f"Dummy input shape: {dummy_input.shape}")
 
     dynamic_axes = (

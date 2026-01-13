@@ -14,14 +14,17 @@ from config import (
 def build_transforms(
     config: dict[str, Any],
     model_config: dict[str, Any] | None = None,
+    is_train: bool = True,
 ) -> A.Compose:
     """YAML設定からalbumentationsパイプラインを構築する.
 
     Args:
         config: ops配列を含む辞書
             例: {"ops": [{"type": "Resize", "height": 256, "width": 256}, ...]}
-        model_config: モデル設定辞書。input_sizeを含む場合、
-            augmentationのサイズを自動調整する。
+        model_config: モデル設定辞書。学習時はinput_size、検証時はtest_input_sizeを
+            使用してaugmentationのサイズを自動調整する。
+        is_train: 訓練用かどうか。
+            Trueの場合はinput_size、Falseの場合はtest_input_sizeを使用する。
 
     Returns:
         albumentations.Compose オブジェクト
@@ -39,7 +42,22 @@ def build_transforms(
     input_size: int | None = None
 
     if model_config:
-        input_size = model_config["input_size"]
+        if is_train:
+            input_size = model_config.get("input_size")
+        else:
+            test_input_size = model_config.get("test_input_size")
+            if test_input_size is None:
+                raise ConfigValidationError(
+                    section="model",
+                    errors=[
+                        {
+                            "loc": ["test_input_size"],
+                            "msg": "test_input_sizeは必須です",
+                            "input": model_config,
+                        }
+                    ],
+                )
+            input_size = test_input_size
 
     for i, op_config in enumerate(transform_cfg.ops):
         try:
@@ -118,7 +136,7 @@ def _build_single_transform(
 
     Args:
         op_config: バリデーション済みのTransformOpConfig
-        input_size: モデルの入力サイズ（height/widthが未指定の場合に使用）
+        input_size: モデルの入力サイズ（学習時はinput_size、検証時はtest_input_size）
 
     Returns:
         albumentationsトランスフォームオブジェクト
