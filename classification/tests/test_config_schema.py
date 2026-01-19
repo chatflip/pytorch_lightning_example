@@ -183,5 +183,54 @@ class TestDeterministicValues:
         assert not missing, f"Schema is missing deterministic values: {missing}"
 
 
+class TestValCheckIntervalCombination:
+    """val_check_intervalとcheck_val_every_n_epochの組み合わせをテスト."""
+
+    def test_check_val_every_n_epoch_none_with_float_interval_succeeds(self) -> None:
+        """check_val_every_n_epoch=Noneでval_check_intervalがfloatの場合、スキーマでは成功する."""
+        # スキーマではエラーにならない（build_trainerで解決される）
+        config = TrainerConfig(
+            check_val_every_n_epoch=None,
+            val_check_interval=0.5,
+        )
+        assert config.check_val_every_n_epoch is None
+        assert config.val_check_interval == 0.5
+
+    def test_check_val_every_n_epoch_none_with_int_interval_succeeds(self) -> None:
+        """check_val_every_n_epoch=Noneでval_check_intervalが整数の場合、成功する."""
+        config = TrainerConfig(
+            check_val_every_n_epoch=None,
+            val_check_interval=100,
+        )
+        assert config.check_val_every_n_epoch is None
+        assert config.val_check_interval == 100
+
+    def test_check_val_every_n_epoch_set_with_float_interval_succeeds(self) -> None:
+        """check_val_every_n_epochが設定されていてval_check_intervalがfloatの場合、成功する."""
+        config = TrainerConfig(
+            check_val_every_n_epoch=2,
+            val_check_interval=0.5,
+        )
+        assert config.check_val_every_n_epoch == 2
+        assert config.val_check_interval == 0.5
+
+    def test_check_val_every_n_epoch_set_with_int_interval_succeeds(self) -> None:
+        """check_val_every_n_epochが設定されていてval_check_intervalが整数の場合、成功する."""
+        config = TrainerConfig(
+            check_val_every_n_epoch=2,
+            val_check_interval=100,
+        )
+        assert config.check_val_every_n_epoch == 2
+        assert config.val_check_interval == 100
+
+    def test_default_values_succeed(self) -> None:
+        """デフォルト値の場合、成功する."""
+        config = TrainerConfig()
+        assert config.check_val_every_n_epoch is None
+        assert config.val_check_interval == 1.0
+        # デフォルトではcheck_val_every_n_epoch=Noneでval_check_interval=1.0（float）なので
+        # val_check_intervalが使用される（毎エポックの終わりにバリデーション）
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

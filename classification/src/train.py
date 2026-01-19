@@ -5,11 +5,11 @@ from typing import Any
 import pytorch_lightning as L
 import torch
 from loguru import logger
-from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import Logger as PLLogger
 from pytorch_lightning.loggers import MLFlowLogger
 
-from builders import build_logger
+from builders import NoVersionProgressBar, build_logger
 from config import (
     ConfigValidationError,
     load_config,
@@ -83,7 +83,7 @@ def build_trainer(
 
     progress_bar_cfg = validate_progress_bar_from_config(config)
     try:
-        tqdm_callback = TQDMProgressBar(refresh_rate=progress_bar_cfg.refresh_rate)
+        tqdm_callback = NoVersionProgressBar(refresh_rate=progress_bar_cfg.refresh_rate)
     except Exception as e:
         raise ConfigValidationError(
             section="progress_bar",
@@ -98,22 +98,27 @@ def build_trainer(
 
     trainer_cfg = validate_trainer_from_config(config)
     try:
-        trainer = L.Trainer(
-            logger=pl_logger,
-            callbacks=[
+        trainer_kwargs: dict[str, Any] = {
+            "logger": pl_logger,
+            "callbacks": [
                 tqdm_callback,
                 checkpoint_callback,
             ],
-            max_epochs=trainer_cfg.max_epochs,
-            accelerator=trainer_cfg.accelerator,
-            devices=trainer_cfg.devices,
-            precision=trainer_cfg.precision,
-            strategy=trainer_cfg.strategy,
-            deterministic=trainer_cfg.deterministic,
-            log_every_n_steps=trainer_cfg.log_every_n_steps,
-            val_check_interval=trainer_cfg.val_check_interval,
-            num_sanity_val_steps=0,
-        )
+            "max_epochs": trainer_cfg.max_epochs,
+            "accelerator": trainer_cfg.accelerator,
+            "devices": trainer_cfg.devices,
+            "precision": trainer_cfg.precision,
+            "strategy": trainer_cfg.strategy,
+            "deterministic": trainer_cfg.deterministic,
+            "log_every_n_steps": trainer_cfg.log_every_n_steps,
+            "val_check_interval": trainer_cfg.val_check_interval,
+            "num_sanity_val_steps": 0,
+        }
+        if trainer_cfg.check_val_every_n_epoch is not None:
+            trainer_kwargs["check_val_every_n_epoch"] = (
+                trainer_cfg.check_val_every_n_epoch
+            )
+        trainer = L.Trainer(**trainer_kwargs)
     except Exception as e:
         raise ConfigValidationError(
             section="trainer",

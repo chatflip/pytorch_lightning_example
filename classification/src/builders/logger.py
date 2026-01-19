@@ -1,5 +1,7 @@
 from typing import Any
 
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks import TQDMProgressBar
 from pytorch_lightning.loggers import Logger, MLFlowLogger, TensorBoardLogger
 
 from config import (
@@ -102,3 +104,23 @@ def _build_tensorboard_logger(
                 }
             ],
         ) from e
+
+
+class NoVersionProgressBar(TQDMProgressBar):
+    """バージョン番号を表示しないカスタムプログレスバー."""
+
+    def get_metrics(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> dict[str, int | str | float | dict[str, float]]:
+        """プログレスバーに表示するメトリクスを取得する。v_numを除外する.
+
+        Args:
+            trainer: PyTorch Lightning Trainer
+            pl_module: PyTorch Lightning Module
+
+        Returns:
+            プログレスバーに表示するメトリクスの辞書（v_numを除く）
+        """
+        items = super().get_metrics(trainer, pl_module)
+        items.pop("v_num", None)
+        return items
