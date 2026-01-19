@@ -19,6 +19,7 @@ from config import (
     validate_trainer_from_config,
 )
 from data import ClassificationDataModule
+from export_onnx import export_onnx
 from models import ImageClassifier
 from validate import run_validation
 
@@ -132,6 +133,7 @@ def run_training(
     config_path: str,
     resume: str | None = None,
     validate: bool = False,
+    export: bool = False,
 ) -> None:
     """トレーニングを実行する.
 
@@ -139,6 +141,7 @@ def run_training(
         config_path: 設定ファイルのパス
         resume: 再開するチェックポイントのパス
         validate: トレーニング後に検証を実行するかどうか
+        export: トレーニング後にONNXエクスポートを実行するかどうか
     """
     torch.set_float32_matmul_precision("high")
 
@@ -193,6 +196,16 @@ def run_training(
 
         run_validation(config_path=config_path, run_id=run_id)
 
+    if export:
+        assert run_id is not None, "run_id must be set when export is True"
+        logger.info("=" * 50)
+        logger.info("Starting ONNX export...")
+        logger.info("=" * 50)
+
+        logger_config = config.get("logger", {})
+        tracking_uri = logger_config.get("tracking_uri", "mlruns")
+        export_onnx(tracking_uri=tracking_uri, run_id=run_id)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Image Classification Training")
@@ -214,10 +227,16 @@ if __name__ == "__main__":
         action="store_true",
         help="Run validation after training",
     )
+    parser.add_argument(
+        "--export",
+        action="store_true",
+        help="Export model to ONNX format after training",
+    )
     args = parser.parse_args()
 
     run_training(
         config_path=args.config,
         resume=args.resume,
         validate=args.validate,
+        export=args.export,
     )
