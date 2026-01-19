@@ -5,11 +5,11 @@ from typing import Any
 import pytorch_lightning as L
 import torch
 from loguru import logger
-from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import Logger as PLLogger
 from pytorch_lightning.loggers import MLFlowLogger
 
-from builders import build_logger
+from builders import NoVersionProgressBar, build_logger
 from config import (
     ConfigValidationError,
     load_config,
@@ -83,7 +83,7 @@ def build_trainer(
 
     progress_bar_cfg = validate_progress_bar_from_config(config)
     try:
-        tqdm_callback = TQDMProgressBar(refresh_rate=progress_bar_cfg.refresh_rate)
+        tqdm_callback = NoVersionProgressBar(refresh_rate=progress_bar_cfg.refresh_rate)
     except Exception as e:
         raise ConfigValidationError(
             section="progress_bar",
