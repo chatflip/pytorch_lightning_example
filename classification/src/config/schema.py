@@ -99,6 +99,11 @@ class TrainerConfig(BaseModel):
         default=1.0,
         description="検証を行う間隔（0.0-1.0: エポックの割合, >=1: バッチ数）",
     )
+    check_val_every_n_epoch: int | None = Field(
+        default=None,
+        ge=1,
+        description="検証を行うエポック間隔(None: val_check_intervalを使用)",
+    )
 
     @field_validator("devices")
     @classmethod
