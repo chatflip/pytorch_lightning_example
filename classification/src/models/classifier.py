@@ -56,8 +56,12 @@ class ImageClassifier(L.LightningModule):
         class_counts = data_config.get("class_counts", None)
         self.criterion = build_loss(loss_config, class_counts)
 
-        self.train_acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1)
-        self.val_acc1 = MulticlassAccuracy(num_classes=num_classes, top_k=1)
+        self.train_acc1 = MulticlassAccuracy(
+            num_classes=num_classes, top_k=1, average="macro"
+        )
+        self.val_acc1 = MulticlassAccuracy(
+            num_classes=num_classes, top_k=1, average="macro"
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """モデルを通した順伝播.
