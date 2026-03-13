@@ -280,7 +280,7 @@ def export_onnx(
     logger.info(f"Dummy input shape: {dummy_input.shape}")
 
     dynamic_axes = (
-        {"images": {0: "batch_size"}, "output": {0: "batch_size"}}
+        {"images": {0: "batch_size"}, "scores": {0: "batch_size"}}
         if dynamic_batch
         else None
     )
@@ -334,7 +334,7 @@ def _export_to_onnx(
         opset_version=opset_version,
         do_constant_folding=True,
         input_names=["images"],
-        output_names=["output"],
+        output_names=["scores"],
         dynamic_axes=dynamic_axes,
         dynamo=False,
     )
