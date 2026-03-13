@@ -333,7 +333,7 @@ def _export_to_onnx(
         export_params=True,
         opset_version=opset_version,
         do_constant_folding=True,
-        input_names=["input"],
+        input_names=["images"],
         output_names=["output"],
         dynamic_axes=dynamic_axes,
         dynamo=False,
